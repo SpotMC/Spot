@@ -2,7 +2,7 @@ use crate::network::connection::Connection;
 use crate::network::packet::Encode;
 use crate::registry::get_cache;
 use crate::util::{write_str, write_var_int};
-use crate::write_bool;
+use crate::{registry, write_bool};
 use dashmap::DashMap;
 use serde::Serialize;
 use std::io::Error;
@@ -15,7 +15,7 @@ pub(crate) struct RegistryDataS2C<'a, T: Serialize> {
     pub(crate) cache: &'a DashMap<String, Vec<u8>>,
 }
 
-impl<'a, T: Serialize> Encode for RegistryDataS2C<'a, T> {
+impl<'a, T: Serialize + registry::NbtSerializable> Encode for RegistryDataS2C<'a, T> {
     async fn encode<W: AsyncWrite + Unpin>(
         &self,
         _connection: &mut Connection<'_>,

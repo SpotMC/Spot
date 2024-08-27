@@ -2,20 +2,15 @@ use std::io::{Error, ErrorKind};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
 pub async fn read_var_int<R: AsyncRead + Unpin>(reader: &mut R) -> Result<i32, Error> {
-    let mut value: i32 = 0;
-    let mut position: u8 = 0;
-    loop {
-        let current_byte = reader.read_u8().await?;
-        value |= ((current_byte & 0x7F) << position) as i32;
-        if (current_byte & 0x80) == 0 {
-            break;
-        }
-        position += 7;
-        if position >= 32 {
-            return Err(Error::new(ErrorKind::Other, "VarInt is too big"));
+    let mut val = 0;
+    for i in 0..5 {
+        let byte = reader.read_u8().await?;
+        val |= (i32::from(byte) & 0b01111111) << (i * 7);
+        if byte & 0b10000000 == 0 {
+            return Ok(val);
         }
     }
-    Ok(value)
+    Err(Error::new(ErrorKind::InvalidData, "VarInt too big"))
 }
 
 #[macro_export]
@@ -58,6 +53,13 @@ pub async fn write_str<W: AsyncWrite + Unpin>(writer: &mut W, value: &str) -> Re
     write_var_int(writer, value.len() as i32).await?;
     writer.write_all(value.as_bytes()).await?;
     Ok(())
+}
+
+#[tokio::test]
+async fn utils_test() {
+    let mut buf = Vec::new();
+    write_var_int(&mut buf, 123456789).await.unwrap();
+    assert_eq!(read_var_int(&mut buf.as_slice()).await.unwrap(), 123456789);
 }
 
 #[macro_export]

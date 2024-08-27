@@ -9,7 +9,7 @@ jobs:
     strategy:
       matrix:
         os: [ ubuntu-latest, macos-latest, windows-latest ]
-        arch: [x86_64, aarch64]
+        arch: [ x86_64, aarch64 ]
       fail-fast: false
 
     steps:
@@ -20,6 +20,18 @@ jobs:
         uses: crusty-pie/toolchain@v1
         with:
           toolchain: stable
+
+      - name: Set up cargo cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: cargo-cache-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: cargo-cache-${{ runner.os }}
 
       - name: Build project
         run: cargo build --release

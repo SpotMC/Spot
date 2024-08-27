@@ -1,16 +1,17 @@
+use crate::nbt::{serde_nbt, NbtCompound};
 use crate::network::connection::Connection;
 use crate::network::packet::s2c::config_registry_data_s2c::RegistryDataS2C;
 use crate::GENERATED;
+use bytes::BytesMut;
 use dashmap::DashMap;
 use lazy_static::lazy_static;
-use serde::Serialize;
 use serde_json::Value;
 use std::io::Error;
 use std::str::FromStr;
 
 pub mod biome;
 pub mod damage_type;
-mod painting_variant;
+pub mod painting_variant;
 pub mod wolf_variant;
 
 #[inline(always)]
@@ -45,7 +46,7 @@ lazy_static! {
         DashMap::with_capacity(wolf_variant::WOLF_VARIANTS.len());
 }
 #[inline]
-pub(crate) fn get_cache<T: Serialize>(
+pub(crate) fn get_cache<T: NbtSerializable>(
     id: &str,
     raw_data: &T,
     cache: &DashMap<String, Vec<u8>>,
@@ -54,12 +55,11 @@ pub(crate) fn get_cache<T: Serialize>(
     Ok(if let Some(data) = data {
         data.value().to_owned()
     } else {
-        let bytes = match fastnbt::to_bytes(raw_data) {
-            Ok(bytes) => bytes,
-            Err(e) => return Err(Error::new(std::io::ErrorKind::InvalidData, e)),
-        };
-        cache.insert(id.parse().unwrap(), bytes.clone());
-        bytes
+        let mut buf = BytesMut::new();
+        serde_nbt(raw_data.to_nbt(), &mut buf);
+        let buf = buf.to_vec();
+        cache.insert(id.parse().unwrap(), buf.clone());
+        buf
     })
 }
 
@@ -93,4 +93,8 @@ pub(crate) async fn send_registry_data<'a>(connection: &mut Connection<'a>) -> R
         })
         .await?;
     Ok(())
+}
+
+pub trait NbtSerializable {
+    fn to_nbt(&self) -> NbtCompound;
 }

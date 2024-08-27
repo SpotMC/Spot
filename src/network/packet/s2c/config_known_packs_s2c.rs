@@ -14,7 +14,7 @@ impl Encode for ConfigKnownPacksS2C {
         _connection: &mut Connection<'_>,
         buf: &mut W,
     ) -> Result<(), Error> {
-        write_var_int(buf, 0).await?;
+        write_var_int(buf, 1).await?;
         write_str(buf, "minecraft").await?;
         write_str(buf, "core").await?;
         write_str(buf, MINECRAFT_VERSION).await?;

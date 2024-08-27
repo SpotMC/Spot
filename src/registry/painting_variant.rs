@@ -1,3 +1,6 @@
+use crate::nbt::{NbtCompound, NbtInt, NbtString, NbtTag};
+use crate::registry::NbtSerializable;
+use crate::{nbt_int, nbt_str};
 use dashmap::DashMap;
 use lazy_static::lazy_static;
 use serde_derive::{Deserialize, Serialize};
@@ -82,5 +85,15 @@ impl PaintingVariant {
                 asset_id,
             },
         );
+    }
+}
+
+impl NbtSerializable for PaintingVariant {
+    fn to_nbt(&self) -> NbtCompound {
+        let data: DashMap<String, Box<dyn NbtTag>> = DashMap::with_capacity(3);
+        data.insert("width".to_string(), nbt_int!(self.width));
+        data.insert("height".to_string(), nbt_int!(self.height));
+        data.insert("asset_id".to_string(), nbt_str!(self.asset_id.clone()));
+        NbtCompound { data }
     }
 }

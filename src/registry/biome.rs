@@ -1,4 +1,6 @@
-use crate::registry::load_static_registries;
+use crate::nbt::*;
+use crate::registry::{load_static_registries, NbtSerializable};
+use crate::{nbt_byte, nbt_double, nbt_float, nbt_int, nbt_str};
 use dashmap::DashMap;
 use lazy_static::lazy_static;
 use serde_derive::Deserialize;
@@ -81,9 +83,117 @@ pub struct ParticleOptions {
     pub particle_type: String,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct AmbientSound {
-    pub sound_id: String,
-    #[serde(default)]
-    pub range: Option<f32>,
+impl NbtSerializable for Biome {
+    fn to_nbt(&self) -> NbtCompound {
+        let map: DashMap<String, Box<dyn NbtTag>> = DashMap::with_capacity(5);
+        let effects: DashMap<String, Box<dyn NbtTag>> = DashMap::with_capacity(12);
+        map.insert(
+            "has_precipitation".to_string(),
+            nbt_byte!(self.has_precipitation),
+        );
+        map.insert("temperature".to_string(), nbt_float!(self.temperature));
+        map.insert("downfall".to_string(), nbt_float!(self.downfall));
+        effects.insert(
+            "water_fog_color".to_string(),
+            nbt_int!(self.effects.water_fog_color),
+        );
+        effects.insert("fog_color".to_string(), nbt_int!(self.effects.fog_color));
+        effects.insert(
+            "water_color".to_string(),
+            nbt_int!(self.effects.water_color),
+        );
+        effects.insert("sky_color".to_string(), nbt_int!(self.effects.sky_color));
+        if self.temperature_modifier.is_some() {
+            map.insert(
+                "temperature_modifier".to_string(),
+                nbt_str!(self.temperature_modifier.clone().unwrap()),
+            );
+        }
+        if self.effects.grass_color.is_some() {
+            effects.insert(
+                "grass_color".to_string(),
+                nbt_int!(self.effects.grass_color.unwrap()),
+            );
+        }
+        if self.effects.grass_color_modifier.is_some() {
+            effects.insert(
+                "grass_color_modifier".to_string(),
+                nbt_str!(self.effects.grass_color_modifier.clone().unwrap()),
+            );
+        }
+        if self.effects.foliage_color.is_some() {
+            effects.insert(
+                "foliage_color".to_string(),
+                nbt_int!(self.effects.foliage_color.unwrap()),
+            );
+        }
+        if self.effects.music.is_some() {
+            let map: DashMap<String, Box<dyn NbtTag>> = DashMap::with_capacity(4);
+            let music = self.effects.music.clone().unwrap();
+            map.insert(
+                "replace_current_music".to_string(),
+                nbt_byte!(music.replace_current_music),
+            );
+            map.insert("max_delay".to_string(), nbt_int!(music.max_delay));
+            map.insert("sound".to_string(), nbt_str!(music.sound));
+            map.insert("min_delay".to_string(), nbt_int!(music.min_delay));
+            effects.insert("music".to_string(), Box::from(NbtCompound { data: map }));
+        }
+        if self.effects.mood_sound.is_some() {
+            let map: DashMap<String, Box<dyn NbtTag>> = DashMap::with_capacity(4);
+            let mood_sound = self.effects.mood_sound.clone().unwrap();
+            map.insert("tick_delay".to_string(), nbt_int!(mood_sound.tick_delay));
+            map.insert("offset".to_string(), nbt_double!(mood_sound.offset));
+            map.insert("sound".to_string(), nbt_str!(mood_sound.sound));
+            map.insert(
+                "block_search_extent".to_string(),
+                nbt_int!(mood_sound.block_search_extent),
+            );
+            effects.insert(
+                "mood_sound".to_string(),
+                Box::from(NbtCompound { data: map }),
+            );
+        }
+        if self.effects.additions_sound.is_some() {
+            let map: DashMap<String, Box<dyn NbtTag>> = DashMap::with_capacity(2);
+            let additions_sound = self.effects.additions_sound.clone().unwrap();
+            map.insert("sound".to_string(), nbt_str!(additions_sound.sound));
+            map.insert(
+                "tick_chance".to_string(),
+                nbt_double!(additions_sound.tick_chance),
+            );
+            effects.insert(
+                "additions_sound".to_string(),
+                Box::from(NbtCompound { data: map }),
+            );
+        }
+        if self.effects.particle.is_some() {
+            let map: DashMap<String, Box<dyn NbtTag>> = DashMap::with_capacity(2);
+            let particle = self.effects.particle.clone().unwrap();
+            map.insert("probability".to_string(), nbt_double!(particle.probability));
+            let particle_options: DashMap<String, Box<dyn NbtTag>> = DashMap::with_capacity(1);
+            particle_options.insert(
+                "particle_type".to_string(),
+                nbt_str!(particle.options.particle_type),
+            );
+            map.insert(
+                "options".to_string(),
+                Box::from(NbtCompound {
+                    data: particle_options,
+                }),
+            );
+            effects.insert("particle".to_string(), Box::from(NbtCompound { data: map }));
+        }
+        if self.effects.ambient_sound.is_some() {
+            effects.insert(
+                "ambient_sound".to_string(),
+                nbt_str!(self.effects.ambient_sound.clone().unwrap()),
+            );
+        }
+        map.insert(
+            "effects".to_string(),
+            Box::from(NbtCompound { data: effects }),
+        );
+        NbtCompound { data: map }
+    }
 }

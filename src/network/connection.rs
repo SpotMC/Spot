@@ -6,9 +6,9 @@ use crate::network::packet::c2s::login_start_c2s::login_start;
 use crate::network::packet::Encode;
 use crate::util::{read_str, read_var_int, write_var_int};
 use crate::{read_str, read_var_int, PROTOCOL_VERSION};
-use bytes::BytesMut;
 use std::io::{Error, ErrorKind};
 use std::pin::{pin, Pin};
+use tklog::async_debug;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::task::yield_now;
@@ -16,20 +16,26 @@ use tokio::task::yield_now;
 macro_rules! decoders {
     ($connection:expr;$packet:expr; $($x:expr => $y:ident)*) => {
         match $packet.id {
-            $($x=>{$y(&mut $connection, &mut $packet.data.as_ref()).await?})*
+            $($x=>{
+                let mut data = &*$packet.data;
+                read_var_int!(data);
+                $y(&mut $connection, &mut data).await?
+            })*
             _ => {}
         }
     };
 }
 
 pub(crate) async fn read_socket(socket: &mut TcpStream) -> Result<(), Error> {
+    socket.set_nodelay(true)?;
     let mut connection = Connection::new(socket);
     loop {
         let packet = connection.read_packet().await?;
         yield_now().await;
         match connection.state {
             Handshake => {
-                let mut data: Pin<&mut Box<&[u8]>> = pin!(Box::new(packet.data.as_ref()));
+                let mut data: Pin<&mut Box<&[u8]>> = pin!(Box::new(&*packet.data));
+                read_var_int!(data);
                 let protocol_version = read_var_int!(data);
                 if protocol_version != PROTOCOL_VERSION {
                     return Err(Error::new(
@@ -109,21 +115,22 @@ impl Connection<'_> {
         data.encode(self, &mut buf).await?;
         write_var_int(self.stream, buf.len() as i32).await?;
         self.stream.write_all(&buf).await?;
+        async_debug!("Packet out: len:", buf.len(), ",pid:", data.get_id());
         Ok(())
     }
     async fn read_packet(&mut self) -> Result<Packet, Error> {
         self.stream.readable().await?;
         let length = read_var_int!(self.stream);
-        let mut buf = BytesMut::with_capacity(length as usize);
+        let mut buf = Vec::with_capacity(length as usize);
         self.stream.read_buf(&mut buf).await?;
-        let id = read_var_int!(buf.as_ref());
+        let id = read_var_int!(buf.as_slice());
         Ok(Packet { id, data: buf })
     }
 }
 
 pub struct Packet {
     pub id: i32,
-    pub data: BytesMut,
+    pub data: Vec<u8>,
 }
 pub enum State {
     Handshake,
