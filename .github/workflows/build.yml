@@ -1,0 +1,39 @@
+name: Build
+
+on:
+  [push, pull_request, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
+        arch: [x86_64, aarch64]
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Build project
+        run: cargo build --release
+
+      - name: Upload artifact (Linux)
+        if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: spot-latest-${{ matrix.os }}-${{ matrix.arch }}
+          path: target/release/Spot
+
+      - name: Upload artifact (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-latest-heaven-${{ matrix.os }}
+          path: target/release/Spot.exe
