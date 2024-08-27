@@ -4,12 +4,11 @@ pub mod util;
 
 use crate::registry::biome::BIOMES;
 use crate::registry::damage_type::DAMAGE_TYPES;
-use crate::registry::wolf_variants::WOLF_VARIANTS;
+use crate::registry::wolf_variant::WOLF_VARIANTS;
 use lazy_static::lazy_static;
 use network::connection::read_socket;
 use static_files::Resource;
 use std::collections::HashMap;
-use fastnbt::from_reader;
 use tklog::{async_debug, async_info, async_trace};
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpListener;
@@ -53,6 +52,4 @@ async fn main() {
 }
 
 #[test]
-fn data_generate() {
-    
-}
+fn data_generate() {}

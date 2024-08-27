@@ -13,7 +13,6 @@ dependencies = [
  "serde",
  "serde_derive",
  "serde_json",
- "shen-nbt5",
  "static-files",
  "tklog",
  "tokio",
@@ -544,12 +543,6 @@ dependencies = [
  "ryu",
  "serde",
 ]
-
-[[package]]
-name = "shen-nbt5"
-version = "0.4.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "829a5b2459a4971c4b97014b914e0424daff5f76e31411d1bc5bf4c2ed8010b6"
 
 [[package]]
 name = "shlex"

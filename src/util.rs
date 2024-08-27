@@ -63,7 +63,7 @@ pub async fn write_str<W: AsyncWrite + Unpin>(writer: &mut W, value: &str) -> Re
 #[macro_export]
 macro_rules! write_bool {
     ($writer:expr, $bool:expr) => {
-        $writer.write_u8(if $bool { 1 } else { 0 }).await?;
+        $writer.write_u8(if $bool { 1 } else { 0 }).await?
     };
 }
 #[macro_export]
