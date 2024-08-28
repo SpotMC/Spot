@@ -1,6 +1,6 @@
 use crate::nbt::{serde_nbt, NbtCompound};
 use crate::network::connection::Connection;
-use crate::network::packet::s2c::config_registry_data_s2c::RegistryDataS2C;
+use crate::network::packet::s2c::registry_data::RegistryDataS2C;
 use crate::GENERATED;
 use bytes::BytesMut;
 use dashmap::DashMap;
@@ -11,6 +11,7 @@ use std::str::FromStr;
 
 pub mod biome;
 pub mod damage_type;
+pub mod dimension_type;
 pub mod painting_variant;
 pub mod wolf_variant;
 
@@ -44,6 +45,8 @@ lazy_static! {
         DashMap::with_capacity(damage_type::DAMAGE_TYPES.len());
     pub(crate) static ref WOLF_VARIANTS_CACHE: DashMap<String, Vec<u8>> =
         DashMap::with_capacity(wolf_variant::WOLF_VARIANTS.len());
+    pub(crate) static ref DIMENSION_TYPES_CACHE: DashMap<String, Vec<u8>> =
+        DashMap::with_capacity(dimension_type::DIMENSION_TYPES.len());
 }
 #[inline]
 pub(crate) fn get_cache<T: NbtSerializable>(
@@ -90,6 +93,13 @@ pub(crate) async fn send_registry_data<'a>(connection: &mut Connection<'a>) -> R
             id: "minecraft:wolf_variant",
             map: &wolf_variant::WOLF_VARIANTS,
             cache: &WOLF_VARIANTS_CACHE,
+        })
+        .await?;
+    connection
+        .send_packet(&RegistryDataS2C {
+            id: "minecraft:dimension_type",
+            map: &dimension_type::DIMENSION_TYPES,
+            cache: &DIMENSION_TYPES_CACHE,
         })
         .await?;
     Ok(())

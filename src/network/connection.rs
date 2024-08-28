@@ -1,14 +1,14 @@
 use crate::network::connection::State::{Handshake, Login};
-use crate::network::packet::c2s::config_client_info_c2s::client_information;
-use crate::network::packet::c2s::config_known_packs_c2s::known_packs;
-use crate::network::packet::c2s::login_acknowledged_c2s::login_acknowledged;
-use crate::network::packet::c2s::login_start_c2s::login_start;
+use crate::network::packet::c2s::acknowledge_finish_configuration::acknowledge_finish_configuration;
+use crate::network::packet::c2s::client_info::client_information;
+use crate::network::packet::c2s::known_packs_c2s::known_packs;
+use crate::network::packet::c2s::login_acknowledged::login_acknowledged;
+use crate::network::packet::c2s::login_start::login_start;
 use crate::network::packet::Encode;
 use crate::util::{read_str, read_var_int, write_var_int};
 use crate::{read_str, read_var_int, PROTOCOL_VERSION};
 use std::io::{Error, ErrorKind};
 use std::pin::{pin, Pin};
-use tklog::async_debug;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::task::yield_now;
@@ -60,6 +60,7 @@ pub(crate) async fn read_socket(socket: &mut TcpStream) -> Result<(), Error> {
             State::Configuration => {
                 decoders!(connection;packet;
                     0x00 => client_information
+                    0x03 => acknowledge_finish_configuration
                     0x07 => known_packs
                 )
             }
@@ -115,7 +116,6 @@ impl Connection<'_> {
         data.encode(self, &mut buf).await?;
         write_var_int(self.stream, buf.len() as i32).await?;
         self.stream.write_all(&buf).await?;
-        async_debug!("Packet out: len:", buf.len(), ",pid:", data.get_id());
         Ok(())
     }
     async fn read_packet(&mut self) -> Result<Packet, Error> {

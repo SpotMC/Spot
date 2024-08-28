@@ -40,12 +40,12 @@ jobs:
         if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
         uses: actions/upload-artifact@v4
         with:
-          name: spot-latest-${{ matrix.os }}-${{ matrix.arch }}
+          name: spot-${{ matrix.os }}-${{ matrix.arch }}
           path: target/release/Spot
 
       - name: Upload artifact (Windows)
         if: matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v4
         with:
-          name: spot-latest-${{ matrix.os }}-${{ matrix.arch }}
+          name: spot-${{ matrix.os }}-${{ matrix.arch }}
           path: target/release/Spot.exe

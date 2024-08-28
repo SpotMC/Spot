@@ -1,4 +1,5 @@
-pub(crate) mod config_client_info_c2s;
-pub(crate) mod config_known_packs_c2s;
-pub(crate) mod login_acknowledged_c2s;
-pub(crate) mod login_start_c2s;
+pub(crate) mod acknowledge_finish_configuration;
+pub(crate) mod client_info;
+pub(crate) mod known_packs_c2s;
+pub(crate) mod login_acknowledged;
+pub(crate) mod login_start;

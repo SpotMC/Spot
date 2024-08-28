@@ -73,7 +73,7 @@ pub struct AdditionsSound {
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Particle {
-    pub probability: f64,
+    pub probability: f32,
     pub options: ParticleOptions,
 }
 
@@ -170,12 +170,9 @@ impl NbtSerializable for Biome {
         if self.effects.particle.is_some() {
             let map: DashMap<String, Box<dyn NbtTag>> = DashMap::with_capacity(2);
             let particle = self.effects.particle.clone().unwrap();
-            map.insert("probability".to_string(), nbt_double!(particle.probability));
+            map.insert("probability".to_string(), nbt_float!(particle.probability));
             let particle_options: DashMap<String, Box<dyn NbtTag>> = DashMap::with_capacity(1);
-            particle_options.insert(
-                "particle_type".to_string(),
-                nbt_str!(particle.options.particle_type),
-            );
+            particle_options.insert("type".to_string(), nbt_str!(particle.options.particle_type));
             map.insert(
                 "options".to_string(),
                 Box::from(NbtCompound {

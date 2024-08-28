@@ -5,6 +5,7 @@ pub mod util;
 
 use crate::registry::biome::BIOMES;
 use crate::registry::damage_type::DAMAGE_TYPES;
+use crate::registry::dimension_type::DIMENSION_TYPES;
 use crate::registry::painting_variant::PAINTING_VARIANTS;
 use crate::registry::wolf_variant::WOLF_VARIANTS;
 use lazy_static::lazy_static;
@@ -26,6 +27,7 @@ async fn main() {
     let time = std::time::Instant::now();
     let listener = TcpListener::bind("127.0.0.1:25565").await.unwrap();
     async_info!("Loaded ", BIOMES.len(), " biomes.");
+    async_info!("Loaded ", DIMENSION_TYPES.len(), " dimension types.");
     async_info!("Loaded ", DAMAGE_TYPES.len(), " damage types.");
     async_info!("Loaded ", WOLF_VARIANTS.len(), " wolf variants.");
     async_info!("Loaded ", PAINTING_VARIANTS.len(), " painting variants.");
