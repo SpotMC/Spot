@@ -13,6 +13,7 @@ pub(crate) struct RegistryDataS2C<'a, T: Serialize> {
     pub(crate) id: &'a str,
     pub(crate) map: &'a DashMap<String, T>,
     pub(crate) cache: &'a DashMap<String, Vec<u8>>,
+    pub(crate) index: &'a Vec<String>,
 }
 
 impl<'a, T: Serialize + registry::NbtSerializable> Encode for RegistryDataS2C<'a, T> {
@@ -23,7 +24,8 @@ impl<'a, T: Serialize + registry::NbtSerializable> Encode for RegistryDataS2C<'a
     ) -> Result<(), Error> {
         write_str(buf, self.id).await?;
         write_var_int(buf, self.map.len() as i32).await?;
-        for entry in self.map.iter() {
+        for key in self.index {
+            let entry = self.map.get_mut(key).unwrap();
             write_str(buf, entry.key()).await?;
             write_bool!(buf, true);
             buf.write_all(&get_cache(entry.key(), entry.value(), self.cache)?)

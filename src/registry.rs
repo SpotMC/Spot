@@ -47,6 +47,15 @@ lazy_static! {
         DashMap::with_capacity(wolf_variant::WOLF_VARIANTS.len());
     pub(crate) static ref DIMENSION_TYPES_CACHE: DashMap<String, Vec<u8>> =
         DashMap::with_capacity(dimension_type::DIMENSION_TYPES.len());
+    pub(crate) static ref BIOMES_INDEX: Vec<String> = index_registry_data(&biome::BIOMES);
+    pub(crate) static ref PAINTING_VARIANTS_INDEX: Vec<String> =
+        index_registry_data(&painting_variant::PAINTING_VARIANTS);
+    pub(crate) static ref DAMAGE_TYPES_INDEX: Vec<String> =
+        index_registry_data(&damage_type::DAMAGE_TYPES);
+    pub(crate) static ref WOLF_VARIANTS_INDEX: Vec<String> =
+        index_registry_data(&wolf_variant::WOLF_VARIANTS);
+    pub(crate) static ref DIMENSION_TYPES_INDEX: Vec<String> =
+        index_registry_data(&dimension_type::DIMENSION_TYPES);
 }
 #[inline]
 pub(crate) fn get_cache<T: NbtSerializable>(
@@ -72,6 +81,7 @@ pub(crate) async fn send_registry_data<'a>(connection: &mut Connection<'a>) -> R
             id: "minecraft:worldgen/biome",
             map: &biome::BIOMES,
             cache: &BIOMES_CACHE,
+            index: &BIOMES_INDEX,
         })
         .await?;
     connection
@@ -79,6 +89,7 @@ pub(crate) async fn send_registry_data<'a>(connection: &mut Connection<'a>) -> R
             id: "minecraft:painting_variant",
             map: &painting_variant::PAINTING_VARIANTS,
             cache: &PAINTING_VARIANTS_CACHE,
+            index: &PAINTING_VARIANTS_INDEX,
         })
         .await?;
     connection
@@ -86,6 +97,7 @@ pub(crate) async fn send_registry_data<'a>(connection: &mut Connection<'a>) -> R
             id: "minecraft:damage_type",
             map: &damage_type::DAMAGE_TYPES,
             cache: &DAMAGE_TYPES_CACHE,
+            index: &DAMAGE_TYPES_INDEX,
         })
         .await?;
     connection
@@ -93,6 +105,7 @@ pub(crate) async fn send_registry_data<'a>(connection: &mut Connection<'a>) -> R
             id: "minecraft:wolf_variant",
             map: &wolf_variant::WOLF_VARIANTS,
             cache: &WOLF_VARIANTS_CACHE,
+            index: &WOLF_VARIANTS_INDEX,
         })
         .await?;
     connection
@@ -100,6 +113,7 @@ pub(crate) async fn send_registry_data<'a>(connection: &mut Connection<'a>) -> R
             id: "minecraft:dimension_type",
             map: &dimension_type::DIMENSION_TYPES,
             cache: &DIMENSION_TYPES_CACHE,
+            index: &DIMENSION_TYPES_INDEX,
         })
         .await?;
     Ok(())
@@ -107,4 +121,10 @@ pub(crate) async fn send_registry_data<'a>(connection: &mut Connection<'a>) -> R
 
 pub trait NbtSerializable {
     fn to_nbt(&self) -> NbtCompound;
+}
+
+pub(crate) fn index_registry_data<T>(map: &DashMap<String, T>) -> Vec<String> {
+    let mut vec = Vec::with_capacity(map.len());
+    map.iter().for_each(|entry| vec.push(entry.key().clone()));
+    vec
 }

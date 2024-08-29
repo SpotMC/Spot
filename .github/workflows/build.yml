@@ -30,8 +30,8 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: cargo-cache-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: cargo-cache-${{ runner.os }}
+          key: cargo-cache-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: cargo-cache-${{ runner.os }}-${{ matrix.arch }}-
 
       - name: Build project
         run: cargo build --release
