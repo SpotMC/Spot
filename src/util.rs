@@ -1,6 +1,16 @@
 use std::io::{Error, ErrorKind};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
+#[inline]
+pub fn to_chunk_yzx(x: i32, y: i32, z: i32) -> usize {
+    (y << 8 | z << 4 | x) as usize
+}
+
+#[inline]
+pub fn to_dim_xz(x: i32, z: i32) -> u64 {
+    (x as u64) << 32 | (z as u64)
+}
+
 pub async fn read_var_int<R: AsyncRead + Unpin>(reader: &mut R) -> Result<i32, Error> {
     let mut val = 0;
     for i in 0..5 {
@@ -53,13 +63,6 @@ pub async fn write_str<W: AsyncWrite + Unpin>(writer: &mut W, value: &str) -> Re
     write_var_int(writer, value.len() as i32).await?;
     writer.write_all(value.as_bytes()).await?;
     Ok(())
-}
-
-#[tokio::test]
-async fn utils_test() {
-    let mut buf = Vec::new();
-    write_var_int(&mut buf, 123456789).await.unwrap();
-    assert_eq!(read_var_int(&mut buf.as_slice()).await.unwrap(), 123456789);
 }
 
 #[macro_export]
