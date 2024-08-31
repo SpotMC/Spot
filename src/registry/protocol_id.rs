@@ -1,11 +1,10 @@
 use crate::GENERATED;
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use serde_json::Value;
 
-lazy_static! {
-    pub static ref REGISTRY: Value = get_registry("registries.json");
-    pub static ref BLOCK_STATES: Value = get_registry("blocks.json");
-}
+pub static REGISTRY: Lazy<Value> = Lazy::new(|| get_registry("registries.json"));
+pub static BLOCK_STATES: Lazy<Value> = Lazy::new(|| get_registry("blocks.json"));
+
 fn get_registry(file: &str) -> Value {
     let json = GENERATED.get(file).unwrap();
     serde_json::from_str(

@@ -1,7 +1,7 @@
 use crate::world::block_update::BlockUpdateType;
 use crate::world::dimension::Dimension;
 use dashmap::DashMap;
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use std::collections::HashMap;
 
 pub trait Block: Send + Sync {
@@ -20,12 +20,10 @@ pub trait BlockState: Send + Sync {
     fn get_block_id(&self) -> u32;
     fn get_block_state(&self) -> u32;
 }
-
-lazy_static! {
-    pub static ref BLOCKS_BY_ID: DashMap<String, Box<dyn Block>> = DashMap::new();
-    pub static ref BLOCKS_BY_NAME: DashMap<u32, String> = DashMap::new();
-    pub static ref BLOCK_STATES_BY_ID: DashMap<u32, Box<(dyn BlockState)>> = DashMap::new();
-}
+pub(crate) static BLOCKS_BY_ID: Lazy<DashMap<String, Box<dyn Block>>> = Lazy::new(DashMap::new);
+pub(crate) static BLOCKS_BY_NAME: Lazy<DashMap<u32, String>> = Lazy::new(DashMap::new);
+pub(crate) static BLOCK_STATES_BY_ID: Lazy<DashMap<u32, Box<(dyn BlockState)>>> =
+    Lazy::new(DashMap::new);
 
 fn register_block(id: String, block: Box<dyn Block + 'static>) {
     block.get_block_states().into_iter().for_each(|(k, v)| {

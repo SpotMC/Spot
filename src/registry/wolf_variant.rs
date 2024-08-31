@@ -2,17 +2,16 @@ use crate::nbt::{NbtCompound, NbtString, NbtTag};
 use crate::nbt_str;
 use crate::registry::{load_static_registries, NbtSerializable};
 use dashmap::DashMap;
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
-lazy_static! {
-    pub static ref WOLF_VARIANTS: DashMap<String, WolfVariant> =
-        load_static_registries("wolf_variants.json", |v: Value| {
-            let wolf_variant: WolfVariant = serde_json::from_value(v).unwrap();
-            wolf_variant
-        });
-}
+pub static WOLF_VARIANTS: Lazy<DashMap<String, WolfVariant>> = Lazy::new(|| {
+    load_static_registries("wolf_variants.json", |v: Value| {
+        let wolf_variant: WolfVariant = serde_json::from_value(v).unwrap();
+        wolf_variant
+    })
+});
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct WolfVariant {

@@ -2,18 +2,17 @@ use crate::nbt::*;
 use crate::registry::{load_static_registries, NbtSerializable};
 use crate::{nbt_byte, nbt_double, nbt_float, nbt_int, nbt_str};
 use dashmap::DashMap;
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
 use serde_json::Value;
 
-lazy_static! {
-    pub static ref BIOMES: DashMap<String, Biome> =
-        load_static_registries("biomes.json", |v: Value| {
-            let biome: Biome = serde_json::from_value(v).unwrap();
-            biome
-        });
-}
+pub static BIOMES: Lazy<DashMap<String, Biome>> = Lazy::new(|| {
+    load_static_registries("biomes.json", |v: Value| {
+        let biome: Biome = serde_json::from_value(v).unwrap();
+        biome
+    })
+});
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Biome {

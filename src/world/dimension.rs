@@ -5,12 +5,14 @@ use nohash_hasher::{BuildNoHashHasher, IntMap};
 
 pub struct Dimension {
     pub dimension_type: DimensionType,
+    pub dimension_name: String,
     pub chunks: IntMap<u64, Chunk>,
 }
 impl Dimension {
-    pub fn new(dimension_type: DimensionType) -> Dimension {
+    pub fn new(dimension_type: DimensionType, dimension_name: String) -> Dimension {
         Dimension {
             dimension_type,
+            dimension_name,
             chunks: IntMap::with_capacity_and_hasher(256, BuildNoHashHasher::default()),
         }
     }

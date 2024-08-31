@@ -2,13 +2,12 @@ use crate::nbt::{NbtCompound, NbtInt, NbtString, NbtTag};
 use crate::registry::NbtSerializable;
 use crate::{nbt_int, nbt_str};
 use dashmap::DashMap;
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use serde_derive::{Deserialize, Serialize};
 
-lazy_static! {
-    pub static ref PAINTING_VARIANTS: DashMap<String, PaintingVariant> = init_registry_map();
-}
-
+pub static PAINTING_VARIANTS: Lazy<DashMap<String, PaintingVariant>> =
+    Lazy::new(|| init_registry_map());
+#[inline]
 fn init_registry_map() -> DashMap<String, PaintingVariant> {
     let map: DashMap<String, PaintingVariant> = DashMap::new();
     PaintingVariant::insert(&map, "minecraft:kebab", 1, 1);

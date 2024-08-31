@@ -24,6 +24,7 @@ impl World {
         for dim in DIMENSION_TYPES_INDEX.iter() {
             dimensions.push(Dimension::new(
                 DIMENSION_TYPES.get(dim).unwrap().value().clone(),
+                dim.to_string(),
             ));
         }
         World {

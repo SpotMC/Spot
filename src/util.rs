@@ -10,6 +10,9 @@ pub fn to_chunk_yzx(x: i32, y: i32, z: i32) -> usize {
 pub fn to_dim_xz(x: i32, z: i32) -> u64 {
     (x as u64) << 32 | (z as u64)
 }
+pub fn encode_position(x: i32, y: i32, z: i32) -> u64 {
+    ((x as u64 & 0x3FFFFFF) << 38) | ((z as u64 & 0x3FFFFFF) << 12) | (y as u64 & 0xFFF)
+}
 
 pub async fn read_var_int<R: AsyncRead + Unpin>(reader: &mut R) -> Result<i32, Error> {
     let mut val = 0;

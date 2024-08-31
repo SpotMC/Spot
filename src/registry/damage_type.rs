@@ -2,17 +2,16 @@ use crate::nbt::*;
 use crate::registry::{load_static_registries, NbtSerializable};
 use crate::{nbt_double, nbt_str};
 use dashmap::DashMap;
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
-lazy_static! {
-    pub static ref DAMAGE_TYPES: DashMap<String, DamageType> =
-        load_static_registries("damage_types.json", |v: Value| {
-            let damage_type: DamageType = serde_json::from_value(v).unwrap();
-            damage_type
-        });
-}
+pub static DAMAGE_TYPES: Lazy<DashMap<String, DamageType>> = Lazy::new(|| {
+    load_static_registries("damage_types.json", |v: Value| {
+        let damage_type: DamageType = serde_json::from_value(v).unwrap();
+        damage_type
+    })
+});
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DamageType {
     #[serde(default)]

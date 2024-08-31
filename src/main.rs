@@ -1,4 +1,5 @@
 pub mod block;
+pub mod config;
 pub mod entity;
 pub mod nbt;
 pub(crate) mod network;
@@ -10,9 +11,9 @@ use crate::registry::{
     BIOMES_INDEX, DAMAGE_TYPES_INDEX, DIMENSION_TYPES_INDEX, PAINTING_VARIANTS_INDEX,
     WOLF_VARIANTS_INDEX,
 };
-use lazy_static::lazy_static;
 use mimalloc::MiMalloc;
 use network::connection::read_socket;
+use once_cell::sync::Lazy;
 use static_files::Resource;
 use std::collections::HashMap;
 use tklog::{async_debug, async_info, async_trace};
@@ -26,10 +27,8 @@ static ALLOCATOR: MiMalloc = MiMalloc;
 pub const PROTOCOL_VERSION: i32 = 767;
 pub const MINECRAFT_VERSION: &str = "1.21";
 include!(concat!(env!("OUT_DIR"), "/generated.rs"));
-lazy_static! {
-    pub static ref GENERATED: HashMap<&'static str, Resource> = generate();
-    static ref stopped: bool = false;
-}
+pub static GENERATED: Lazy<HashMap<&'static str, Resource>> = Lazy::new(|| generate());
+pub static mut STOPPED: bool = false;
 #[tokio::main]
 async fn main() {
     let time = std::time::Instant::now();
@@ -44,13 +43,15 @@ async fn main() {
         PAINTING_VARIANTS_INDEX.len(),
         " painting variants."
     );
-    tokio::spawn(async {
-        let mut world = world::World::new();
+    let mut world = world::World::new();
+    tokio::spawn(async move {
         let mut interval = tokio::time::interval(std::time::Duration::from_millis(50));
         interval.set_missed_tick_behavior(Skip);
         loop {
-            if *stopped {
-                break;
+            unsafe {
+                if STOPPED {
+                    break;
+                }
             }
             world.tick();
             interval.tick().await;
@@ -60,8 +61,10 @@ async fn main() {
         async_info!("Network thread started.");
         async_info!("Used ", time.elapsed().as_nanos(), " ns");
         loop {
-            if *stopped {
-                break;
+            unsafe {
+                if STOPPED {
+                    break;
+                }
             }
             match listener.accept().await {
                 Ok((mut socket, _addr)) => {

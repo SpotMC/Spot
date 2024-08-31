@@ -2,22 +2,19 @@ use crate::nbt::*;
 use crate::registry::{load_static_registries, NbtSerializable};
 use crate::{nbt_byte, nbt_double, nbt_float, nbt_int, nbt_long, nbt_str};
 use dashmap::DashMap;
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
-lazy_static! {
-    pub static ref DIMENSION_TYPES: DashMap<String, DimensionType> =
-        load_static_registries("dimension_types.json", |v: Value| {
-            let dim: DimensionType = serde_json::from_value(v).unwrap();
-            dim
-        });
-}
+pub static DIMENSION_TYPES: Lazy<DashMap<String, DimensionType>> = Lazy::new(|| {
+    load_static_registries("dimension_types.json", |v: Value| {
+        let dim: DimensionType = serde_json::from_value(v).unwrap();
+        dim
+    })
+});
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DimensionType {
-    #[serde(skip_serializing)]
-    pub id: Option<u32>,
     #[serde(default)]
     pub fixed_time: Option<i64>,
     pub piglin_safe: i8,
