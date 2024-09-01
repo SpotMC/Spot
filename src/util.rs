@@ -63,8 +63,9 @@ macro_rules! read_str {
 }
 
 pub async fn write_str<W: AsyncWrite + Unpin>(writer: &mut W, value: &str) -> Result<(), Error> {
-    write_var_int(writer, value.len() as i32).await?;
-    writer.write_all(value.as_bytes()).await?;
+    let bytes = value.as_bytes();
+    write_var_int(writer, bytes.len() as i32).await?;
+    writer.write_all(bytes).await?;
     Ok(())
 }
 

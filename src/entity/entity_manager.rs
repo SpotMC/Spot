@@ -1,41 +1,37 @@
 use crate::entity::Entity;
-use rand::random;
 use std::collections::HashMap;
-use std::ops::{Deref, DerefMut};
 
-pub struct EntityManager<'a> {
-    entities: HashMap<i32, Box<dyn Entity + 'a>>,
+pub struct EntityManager {
+    entities: HashMap<i32, Entity>,
 }
 
-impl<'a> EntityManager<'a> {
-    pub fn new() -> EntityManager<'a> {
+impl EntityManager {
+    pub fn new() -> EntityManager {
         EntityManager {
-            entities: HashMap::with_capacity(64),
+            entities: HashMap::with_capacity(128),
         }
     }
-    pub fn spawn<T: Entity + 'a>(&mut self, entity: T) -> i32 {
-        let eid: i32 = random();
-        self.entities.insert(eid, Box::new(entity));
-        eid
+    pub fn spawn(&mut self, entity: Entity, eid: i32) {
+        self.entities.insert(eid, entity);
     }
-    pub fn get_mut(&mut self, eid: i32) -> Option<&mut (dyn Entity + 'a)> {
+    pub fn get_mut(&mut self, eid: i32) -> Option<&mut Entity> {
         match self.entities.get_mut(&eid) {
-            Some(e) => Some(e.deref_mut()),
+            Some(e) => Some(e),
             None => None,
         }
     }
-    pub fn get(&self, eid: i32) -> Option<&(dyn Entity + 'a)> {
+    pub fn get(&self, eid: i32) -> Option<&Entity> {
         match self.entities.get(&eid) {
-            Some(e) => Some(e.deref()),
+            Some(e) => Some(e),
             None => None,
         }
     }
-    pub fn remove(&mut self, eid: i32) -> Option<Box<dyn Entity + 'a>> {
+    pub fn remove(&mut self, eid: i32) -> Option<Entity> {
         self.entities.remove(&eid)
     }
 }
 
-impl<'a> Default for EntityManager<'a> {
+impl<'a> Default for EntityManager {
     fn default() -> Self {
         EntityManager::new()
     }

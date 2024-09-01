@@ -82,6 +82,7 @@ pub(crate) struct Connection<'a> {
     pub main_hand: Option<MainHand>,
     pub enable_text_filtering: Option<bool>,
     pub allow_server_listings: Option<bool>,
+    pub player: Option<i32>,
 }
 
 pub(crate) enum ChatMode {
@@ -108,6 +109,7 @@ impl Connection<'_> {
             main_hand: None,
             enable_text_filtering: None,
             allow_server_listings: None,
+            player: None,
         }
     }
     pub(crate) async fn send_packet<D: Encode>(&mut self, data: &D) -> Result<(), Error> {

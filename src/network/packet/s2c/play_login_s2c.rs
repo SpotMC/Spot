@@ -6,12 +6,11 @@ use crate::registry::dimension_type::DIMENSION_TYPES;
 use crate::registry::DIMENSION_TYPES_INDEX;
 use crate::util::{encode_position, write_str, write_var_int};
 use crate::write_bool;
-use rayon::prelude::*;
 use std::io::{Error, ErrorKind};
 use tokio::io::{AsyncWrite, AsyncWriteExt};
 
 pub struct PlayLoginS2C<'a> {
-    pub player: &'a Player<'a>,
+    pub player: &'a Player,
 }
 
 impl Encode for PlayLoginS2C<'_> {
@@ -34,21 +33,20 @@ impl Encode for PlayLoginS2C<'_> {
         write_bool!(buf, false);
         write_bool!(buf, true);
         write_bool!(buf, false);
-        write_var_int(
+        write_var_int(buf, self.player.dimension as i32).await?;
+        write_str(
             buf,
-            match DIMENSION_TYPES_INDEX
-                .par_iter()
-                .position_any(|it| it.eq(&self.player.dimension.dimension_name))
-            {
-                Some(index) => index as i32,
+            match DIMENSION_TYPES_INDEX.get(self.player.dimension) {
+                Some(index) => index,
                 None => return Err(Error::new(ErrorKind::Other, "Dimension type not found")),
             },
         )
         .await?;
-        write_str(buf, &self.player.dimension.dimension_name).await?;
         buf.write_i64(*HASHED_SEED).await?;
         buf.write_u8(self.player.game_mode).await?;
         buf.write_i8(self.player.previous_game_mode).await?;
+        write_bool!(buf, false);
+        write_bool!(buf, false);
         match &self.player.death_location {
             Some(death_location) => {
                 write_bool!(buf, true);

@@ -12,8 +12,9 @@ pub mod chunk;
 pub mod dimension;
 
 pub struct World {
+    default_dimension: usize,
     pub dimensions: Vec<Dimension>,
-    pub entities: EntityManager<'static>,
+    pub(crate) entities: EntityManager,
     block_updates_queue_1: Vec<BlockUpdate>,
     block_updates_queue_2: Vec<BlockUpdate>,
     use_2: bool,
@@ -28,6 +29,10 @@ impl World {
             ));
         }
         World {
+            default_dimension: dimensions
+                .iter()
+                .position(|it| it.dimension_name == "minecraft:overworld")
+                .unwrap(),
             dimensions,
             entities: EntityManager::default(),
             block_updates_queue_1: Vec::new(),
@@ -84,6 +89,19 @@ impl World {
             }
         });
         self.swap_queues();
+    }
+    pub fn find_dimension(&self, name: &str) -> Option<&Dimension> {
+        for dim in self.dimensions.iter() {
+            if dim.dimension_name == name {
+                return Some(dim);
+            }
+        }
+        None
+    }
+
+    pub fn get_world_spawn_point(&self) -> (usize, i32, i32, i32) {
+        // TODO
+        (self.default_dimension, 0, 0, 0)
     }
 }
 

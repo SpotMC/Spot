@@ -1,13 +1,12 @@
-use crate::entity::{Entity, LivingEntity};
-use crate::network::connection::Connection;
+use crate::entity::{LivingEntity, TraitEntity};
 use crate::registry::protocol_id::get_protocol_id;
 use crate::world::dimension::Dimension;
+use crate::WORLD;
 
-pub struct Player<'a> {
-    pub(crate) connection: Connection<'a>,
+pub struct Player {
     pub health: f32,
     pub max_health: u16,
-    pub dimension: &'static mut Dimension,
+    pub dimension: usize,
     pub(crate) entity_id: i32,
     pub game_mode: u8,
     pub previous_game_mode: i8,
@@ -20,7 +19,7 @@ pub struct Player<'a> {
     pub pitch: f32,
 }
 
-impl Entity for Player<'_> {
+impl TraitEntity for Player {
     fn get_type(&self) -> u32 {
         get_protocol_id("minecraft:entity_type", "minecraft:player").unwrap()
     }
@@ -34,11 +33,18 @@ impl Entity for Player<'_> {
     }
 
     fn get_dimension(&mut self) -> &mut Dimension {
-        self.dimension
+        unsafe { WORLD.get_mut().dimensions.get_mut(self.dimension).unwrap() }
     }
 
-    fn set_dimension(&mut self, dimension: &'static mut Dimension) {
-        self.dimension = dimension;
+    fn set_dimension(&mut self, dimension: &str) {
+        unsafe {
+            self.dimension = WORLD
+                .get_mut()
+                .dimensions
+                .iter()
+                .position(|d| d.dimension_name == dimension)
+                .unwrap();
+        }
     }
 
     fn get_eid(&self) -> i32 {
@@ -64,7 +70,7 @@ impl Entity for Player<'_> {
     }
 }
 
-impl LivingEntity for Player<'_> {
+impl LivingEntity for Player {
     fn get_health(&self) -> f32 {
         self.health
     }
@@ -77,3 +83,11 @@ impl LivingEntity for Player<'_> {
         self.health -= amount;
     }
 }
+
+impl PartialEq<Self> for Player {
+    fn eq(&self, other: &Self) -> bool {
+        self.entity_id == other.entity_id
+    }
+}
+
+impl Eq for Player {}

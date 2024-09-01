@@ -14,6 +14,7 @@ use crate::registry::{
 use mimalloc::MiMalloc;
 use network::connection::read_socket;
 use once_cell::sync::Lazy;
+use parking_lot::Mutex;
 use static_files::Resource;
 use std::collections::HashMap;
 use tklog::{async_debug, async_info, async_trace};
@@ -27,7 +28,8 @@ static ALLOCATOR: MiMalloc = MiMalloc;
 pub const PROTOCOL_VERSION: i32 = 767;
 pub const MINECRAFT_VERSION: &str = "1.21";
 include!(concat!(env!("OUT_DIR"), "/generated.rs"));
-pub static GENERATED: Lazy<HashMap<&'static str, Resource>> = Lazy::new(|| generate());
+pub static GENERATED: Lazy<HashMap<&'static str, Resource>> = Lazy::new(generate);
+pub static mut WORLD: Lazy<Mutex<world::World>> = Lazy::new(|| Mutex::from(world::World::new()));
 pub static mut STOPPED: bool = false;
 #[tokio::main]
 async fn main() {
@@ -43,7 +45,6 @@ async fn main() {
         PAINTING_VARIANTS_INDEX.len(),
         " painting variants."
     );
-    let mut world = world::World::new();
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(std::time::Duration::from_millis(50));
         interval.set_missed_tick_behavior(Skip);
@@ -53,7 +54,9 @@ async fn main() {
                     break;
                 }
             }
-            world.tick();
+            unsafe {
+                WORLD.get_mut().tick();
+            }
             interval.tick().await;
         }
     });
