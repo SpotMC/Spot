@@ -1,3 +1,4 @@
+use crate::entity::player::PlayerUpdate;
 use crate::network::connection::State::{Handshake, Login};
 use crate::network::packet::c2s::acknowledge_finish_configuration::acknowledge_finish_configuration;
 use crate::network::packet::c2s::client_info::client_information;
@@ -9,6 +10,7 @@ use crate::util::{read_str, read_var_int, write_var_int};
 use crate::{read_str, read_var_int, PROTOCOL_VERSION};
 use std::io::{Error, ErrorKind};
 use std::pin::{pin, Pin};
+use std::sync::mpsc::Receiver;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::task::yield_now;
@@ -67,6 +69,12 @@ pub(crate) async fn read_socket(socket: &mut TcpStream) -> Result<(), Error> {
             State::Play => {}
         }
         yield_now().await;
+        if let Some(recv) = &connection.recv {
+            if let Ok(update) = &recv.try_recv() {
+                // TODO
+                yield_now().await;
+            }
+        }
     }
 }
 pub(crate) struct Connection<'a> {
@@ -83,6 +91,7 @@ pub(crate) struct Connection<'a> {
     pub enable_text_filtering: Option<bool>,
     pub allow_server_listings: Option<bool>,
     pub player: Option<i32>,
+    pub recv: Option<Receiver<PlayerUpdate>>,
 }
 
 pub(crate) enum ChatMode {
@@ -110,6 +119,7 @@ impl Connection<'_> {
             enable_text_filtering: None,
             allow_server_listings: None,
             player: None,
+            recv: None,
         }
     }
     pub(crate) async fn send_packet<D: Encode>(&mut self, data: &D) -> Result<(), Error> {

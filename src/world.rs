@@ -91,12 +91,9 @@ impl World {
         self.swap_queues();
     }
     pub fn find_dimension(&self, name: &str) -> Option<&Dimension> {
-        for dim in self.dimensions.iter() {
-            if dim.dimension_name == name {
-                return Some(dim);
-            }
-        }
-        None
+        self.dimensions
+            .iter()
+            .find(|&dim| dim.dimension_name == name)
     }
 
     pub fn get_world_spawn_point(&self) -> (usize, i32, i32, i32) {

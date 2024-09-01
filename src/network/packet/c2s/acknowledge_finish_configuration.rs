@@ -6,6 +6,7 @@ use crate::network::packet::s2c::play_login_s2c::PlayLoginS2C;
 use crate::WORLD;
 use rand::random;
 use std::io::Error;
+use std::sync::mpsc::channel;
 use tokio::io::AsyncRead;
 
 pub(crate) async fn acknowledge_finish_configuration<R: AsyncRead + Unpin>(
@@ -19,6 +20,7 @@ pub(crate) async fn acknowledge_finish_configuration<R: AsyncRead + Unpin>(
         while world.entities.get(eid).is_some() {
             eid = random();
         }
+        let (tx, recv) = channel();
         let player = Player {
             health: 20.0,
             max_health: 20,
@@ -33,7 +35,9 @@ pub(crate) async fn acknowledge_finish_configuration<R: AsyncRead + Unpin>(
             on_ground: false,
             yaw: 0.0,
             pitch: 0.0,
+            tx,
         };
+        connection.recv = Some(recv);
         connection
             .send_packet(&PlayLoginS2C { player: &player })
             .await?;

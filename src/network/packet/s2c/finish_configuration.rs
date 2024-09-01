@@ -10,7 +10,7 @@ pub(crate) struct FinishConfigurationS2C {}
 impl Encode for FinishConfigurationS2C {
     async fn encode<W: AsyncWrite + Unpin>(
         &self,
-        connection: &mut Connection<'_>,
+        _connection: &mut Connection<'_>,
         _buf: &mut W,
     ) -> Result<(), Error> {
         Ok(())

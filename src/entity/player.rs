@@ -2,6 +2,7 @@ use crate::entity::{LivingEntity, TraitEntity};
 use crate::registry::protocol_id::get_protocol_id;
 use crate::world::dimension::Dimension;
 use crate::WORLD;
+use std::sync::mpsc::Sender;
 
 pub struct Player {
     pub health: f32,
@@ -17,6 +18,7 @@ pub struct Player {
     pub on_ground: bool,
     pub yaw: f32,
     pub pitch: f32,
+    pub(crate) tx: Sender<PlayerUpdate>,
 }
 
 impl TraitEntity for Player {
@@ -91,3 +93,5 @@ impl PartialEq<Self> for Player {
 }
 
 impl Eq for Player {}
+
+pub struct PlayerUpdate {}

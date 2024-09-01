@@ -31,7 +31,7 @@ impl EntityManager {
     }
 }
 
-impl<'a> Default for EntityManager {
+impl Default for EntityManager {
     fn default() -> Self {
         EntityManager::new()
     }
