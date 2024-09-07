@@ -7,6 +7,7 @@ pub mod registry;
 pub mod util;
 pub mod world;
 
+use crate::config::PORT;
 use crate::registry::{
     BIOMES_INDEX, DAMAGE_TYPES_INDEX, DIMENSION_TYPES_INDEX, PAINTING_VARIANTS_INDEX,
     WOLF_VARIANTS_INDEX,
@@ -34,8 +35,10 @@ pub static mut STOPPED: bool = false;
 #[tokio::main]
 async fn main() {
     let time = std::time::Instant::now();
-    let listener = TcpListener::bind("127.0.0.1:25565").await.unwrap();
-
+    let listener = TcpListener::bind(format!("127.0.0.1:{}", *PORT))
+        .await
+        .unwrap();
+    async_info!("Binding PORT: ", *PORT);
     async_info!("Loaded ", BIOMES_INDEX.len(), " biomes.");
     async_info!("Loaded ", DIMENSION_TYPES_INDEX.len(), " dimension types.");
     async_info!("Loaded ", DAMAGE_TYPES_INDEX.len(), " damage types.");
@@ -62,7 +65,7 @@ async fn main() {
     });
     tokio::spawn(async move {
         async_info!("Network thread started.");
-        async_info!("Used ", time.elapsed().as_nanos(), " ns");
+        async_info!("Time elapsed ", time.elapsed().as_nanos(), " ns");
         loop {
             unsafe {
                 if STOPPED {

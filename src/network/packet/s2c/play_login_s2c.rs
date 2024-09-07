@@ -25,11 +25,9 @@ impl Encode for PlayLoginS2C<'_> {
         for dimension_type in DIMENSION_TYPES_INDEX.iter() {
             write_str(buf, dimension_type).await?;
         }
-        unsafe {
-            write_var_int(buf, MAX_PLAYERS).await?;
-            write_var_int(buf, VIEW_DISTANCE).await?;
-            write_var_int(buf, SIMULATION_DISTANCE).await?;
-        }
+        write_var_int(buf, *MAX_PLAYERS).await?;
+        write_var_int(buf, *VIEW_DISTANCE).await?;
+        write_var_int(buf, *SIMULATION_DISTANCE).await?;
         write_bool!(buf, false);
         write_bool!(buf, true);
         write_bool!(buf, false);

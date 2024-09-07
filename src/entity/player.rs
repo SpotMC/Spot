@@ -1,8 +1,8 @@
-use crate::entity::{LivingEntity, TraitEntity};
+use crate::entity::{Entity, LivingEntity};
 use crate::registry::protocol_id::get_protocol_id;
 use crate::world::dimension::Dimension;
 use crate::WORLD;
-use std::sync::mpsc::Sender;
+use tokio::sync::mpsc::UnboundedSender;
 
 pub struct Player {
     pub health: f32,
@@ -18,10 +18,10 @@ pub struct Player {
     pub on_ground: bool,
     pub yaw: f32,
     pub pitch: f32,
-    pub(crate) tx: Sender<PlayerUpdate>,
+    pub(crate) tx: UnboundedSender<PlayerUpdate>,
 }
 
-impl TraitEntity for Player {
+impl Entity for Player {
     fn get_type(&self) -> u32 {
         get_protocol_id("minecraft:entity_type", "minecraft:player").unwrap()
     }
@@ -95,3 +95,5 @@ impl PartialEq<Self> for Player {
 impl Eq for Player {}
 
 pub struct PlayerUpdate {}
+unsafe impl Send for PlayerUpdate {}
+unsafe impl Sync for PlayerUpdate {}

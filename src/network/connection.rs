@@ -10,9 +10,9 @@ use crate::util::{read_str, read_var_int, write_var_int};
 use crate::{read_str, read_var_int, PROTOCOL_VERSION};
 use std::io::{Error, ErrorKind};
 use std::pin::{pin, Pin};
-use std::sync::mpsc::Receiver;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
+use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::task::yield_now;
 
 macro_rules! decoders {
@@ -69,8 +69,8 @@ pub(crate) async fn read_socket(socket: &mut TcpStream) -> Result<(), Error> {
             State::Play => {}
         }
         yield_now().await;
-        if let Some(recv) = &connection.recv {
-            if let Ok(update) = &recv.try_recv() {
+        if let Some(recv) = &mut connection.recv {
+            while let Ok(update) = &recv.try_recv() {
                 // TODO
                 yield_now().await;
             }
@@ -91,7 +91,7 @@ pub(crate) struct Connection<'a> {
     pub enable_text_filtering: Option<bool>,
     pub allow_server_listings: Option<bool>,
     pub player: Option<i32>,
-    pub recv: Option<Receiver<PlayerUpdate>>,
+    pub recv: Option<UnboundedReceiver<PlayerUpdate>>,
 }
 
 pub(crate) enum ChatMode {

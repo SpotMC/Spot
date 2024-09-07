@@ -65,29 +65,41 @@ impl World {
     }
     pub fn tick(&mut self) {
         self.swap_queues();
-        let queue = self.get_internal_queue();
-        let blocks_in_use: DashSet<(i32, i32, i32)> = DashSet::new();
-        queue.par_iter_mut().for_each(|update| {
-            match update.update_type {
-                BlockUpdateType::NeighbourChange => {
-                    // TODO
-                }
-                BlockUpdateType::PostPlacement => {
-                    // TODO
-                }
-                BlockUpdateType::Change(new) => {
-                    while !blocks_in_use.contains(&update.pos) {
-                        thread::yield_now()
+        loop {
+            let mut new: Vec<BlockUpdate> = Vec::new();
+            let queue = self.get_internal_queue();
+            let blocks_in_use: DashSet<(i32, i32, i32)> = DashSet::new();
+            queue.par_iter_mut().for_each(|update| {
+                match update.update_type {
+                    BlockUpdateType::NeighbourChange => {
+                        // TODO
                     }
-                    update
-                        .dimension
-                        .set_block(update.pos.0, update.pos.1, update.pos.2, new);
+                    BlockUpdateType::PostPlacement => {
+                        // TODO
+                    }
+                    BlockUpdateType::Change(new) => {
+                        while blocks_in_use.contains(&update.pos) {
+                            thread::yield_now()
+                        }
+                        blocks_in_use.insert(update.pos);
+                        update
+                            .dimension
+                            .set_block(update.pos.0, update.pos.1, update.pos.2, new);
+                        blocks_in_use.remove(&update.pos);
+                    }
+                    BlockUpdateType::NeighbourChangeDouble => {
+                        // TODO
+                    }
                 }
-                BlockUpdateType::NeighbourChangeDouble => {
-                    // TODO
-                }
+            });
+            if new.is_empty() {
+                break;
+            } else {
+                queue.clear();
+                queue.append(&mut new);
+                new.clear();
             }
-        });
+        }
         self.swap_queues();
     }
     pub fn find_dimension(&self, name: &str) -> Option<&Dimension> {

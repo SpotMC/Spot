@@ -1,8 +1,8 @@
 use crate::world::block_update::BlockUpdateType;
 use crate::world::dimension::Dimension;
 use dashmap::DashMap;
+use hashbrown::HashMap;
 use once_cell::sync::Lazy;
-use std::collections::HashMap;
 
 pub trait Block: Send + Sync {
     fn when_block_update(

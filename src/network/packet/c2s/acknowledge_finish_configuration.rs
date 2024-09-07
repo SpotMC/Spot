@@ -1,13 +1,12 @@
 use crate::entity::player::Player;
-use crate::entity::Entity::Player as EPlayer;
 use crate::network::connection::Connection;
 use crate::network::connection::State::Play;
 use crate::network::packet::s2c::play_login_s2c::PlayLoginS2C;
 use crate::WORLD;
 use rand::random;
 use std::io::Error;
-use std::sync::mpsc::channel;
 use tokio::io::AsyncRead;
+use tokio::sync::mpsc::unbounded_channel;
 
 pub(crate) async fn acknowledge_finish_configuration<R: AsyncRead + Unpin>(
     connection: &mut Connection<'_>,
@@ -20,7 +19,7 @@ pub(crate) async fn acknowledge_finish_configuration<R: AsyncRead + Unpin>(
         while world.entities.get(eid).is_some() {
             eid = random();
         }
-        let (tx, recv) = channel();
+        let (tx, recv) = unbounded_channel();
         let player = Player {
             health: 20.0,
             max_health: 20,
@@ -38,11 +37,13 @@ pub(crate) async fn acknowledge_finish_configuration<R: AsyncRead + Unpin>(
             tx,
         };
         connection.recv = Some(recv);
-        connection
-            .send_packet(&PlayLoginS2C { player: &player })
-            .await?;
-        world.entities.spawn(EPlayer(player), eid);
+        world.entities.spawn(Box::from(player), eid);
         connection.player = Some(eid);
+        connection
+            .send_packet(&PlayLoginS2C {
+                player: world.entities.get(eid).unwrap().downcast_ref().unwrap(),
+            })
+            .await?;
     }
     connection.state = Play;
     Ok(())
