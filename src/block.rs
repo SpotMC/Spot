@@ -15,6 +15,7 @@ pub trait Block: Send + Sync {
     fn get_block_id(&self) -> u32;
     fn get_default_block_state(&self) -> u32;
     fn get_block_states(&self) -> HashMap<u32, Box<(dyn BlockState)>>;
+    fn get_block_settings(&self) -> BlockSettings;
 }
 pub trait BlockState: Send + Sync {
     fn get_block_id(&self) -> u32;
@@ -31,4 +32,17 @@ fn register_block(id: String, block: Box<dyn Block + 'static>) {
     });
     BLOCKS_BY_NAME.insert(block.get_block_id(), id.clone());
     BLOCKS_BY_ID.insert(id.clone(), block);
+}
+
+pub enum BlockType {
+    Solid,
+    Liquid,
+    Air,
+}
+
+pub struct BlockSettings {
+    pub hardness: f32,
+    pub resistance: f32,
+    pub light_level: Option<u8>,
+    pub block_type: BlockType,
 }

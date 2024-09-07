@@ -3,6 +3,6 @@ A modern, fast and open-source **Minecraft** server with a focus on **performanc
 
 ### Notice: This project is still in hard development and is not ready for production.
 
-## Trivia
+### Trivia
 
 - Etymology of the name **“Spot”**: We hope that our project costs as little as a spot compared to the Notchian server.

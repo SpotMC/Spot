@@ -3,20 +3,16 @@ use crate::util::to_chunk_yzx;
 pub struct Chunk {
     pub(crate) data: Vec<u32>,
     pub(crate) height: i32,
-    pub(crate) min_y: i32,
 }
 
 impl Chunk {
-    pub fn new(height: i32, min_y: i32) -> Chunk {
-        let data = Vec::with_capacity((16 * 16 * height) as usize);
-        Chunk {
-            data,
-            height,
-            min_y,
-        }
+    pub fn new(height: i32) -> Chunk {
+        let size = 16 * 16 * height as usize;
+        let data: Vec<u32> = vec![0; size];
+        Chunk { data, height }
     }
     pub fn get_block(&self, x: i32, y: i32, z: i32) -> Option<u32> {
-        if y < self.min_y || y >= self.min_y + self.height {
+        if y < 0 || y >= self.height {
             return None;
         }
         if !(0..16).contains(&x) || !(0..16).contains(&z) {
@@ -27,7 +23,7 @@ impl Chunk {
     }
 
     pub fn set_block(&mut self, x: i32, y: i32, z: i32, block: u32) {
-        if y < self.min_y || y >= self.min_y + self.height {
+        if y < 0 || y >= self.height {
             return;
         }
         if !(0..16).contains(&x) || !(0..16).contains(&z) {
@@ -37,6 +33,6 @@ impl Chunk {
         if yzx >= self.data.capacity() {
             return;
         }
-        self.data[yzx] = block;
+        self.data.insert(yzx, block);
     }
 }

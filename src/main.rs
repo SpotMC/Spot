@@ -4,6 +4,7 @@ pub mod entity;
 pub mod nbt;
 pub(crate) mod network;
 pub mod registry;
+mod test;
 pub mod util;
 pub mod world;
 
@@ -15,10 +16,11 @@ use crate::registry::{
 use mimalloc::MiMalloc;
 use network::connection::read_socket;
 use once_cell::sync::Lazy;
-use parking_lot::Mutex;
+use parking_lot::RwLock;
 use static_files::Resource;
 use std::collections::HashMap;
-use tklog::{async_debug, async_info, async_trace};
+use tklog::Async::Log;
+use tklog::{async_debug, async_info, async_trace, MODE};
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpListener;
 use tokio::time::MissedTickBehavior::Skip;
@@ -30,10 +32,12 @@ pub const PROTOCOL_VERSION: i32 = 767;
 pub const MINECRAFT_VERSION: &str = "1.21";
 include!(concat!(env!("OUT_DIR"), "/generated.rs"));
 pub static GENERATED: Lazy<HashMap<&'static str, Resource>> = Lazy::new(generate);
-pub static mut WORLD: Lazy<Mutex<world::World>> = Lazy::new(|| Mutex::from(world::World::new()));
+pub static mut WORLD: Lazy<RwLock<world::World>> = Lazy::new(|| RwLock::from(world::World::new()));
 pub static mut STOPPED: bool = false;
 #[tokio::main]
 async fn main() {
+    Log.set_cutmode_by_time("./logs/latest.log", MODE::DAY, 0, true)
+        .await;
     let time = std::time::Instant::now();
     let listener = TcpListener::bind(format!("127.0.0.1:{}", *PORT))
         .await
@@ -58,7 +62,7 @@ async fn main() {
                 }
             }
             unsafe {
-                WORLD.get_mut().tick();
+                WORLD.write().tick();
             }
             interval.tick().await;
         }
