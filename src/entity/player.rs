@@ -21,6 +21,32 @@ pub struct Player {
     pub(crate) tx: UnboundedSender<PlayerUpdate>,
 }
 
+impl Player {
+    pub fn new(
+        entity_id: i32,
+        dimension: usize,
+        tx: UnboundedSender<PlayerUpdate>,
+        pos: (f64, f64, f64),
+    ) -> Player {
+        Player {
+            health: 20.0,
+            max_health: 20,
+            dimension,
+            entity_id,
+            game_mode: 0,
+            previous_game_mode: -1,
+            death_location: None,
+            portal_cooldown: 0,
+            pos,
+            velocity: (0.0, 0.0, 0.0),
+            on_ground: false,
+            yaw: 0.0,
+            pitch: 0.0,
+            tx,
+        }
+    }
+}
+
 impl Entity for Player {
     fn get_type(&self) -> u32 {
         get_protocol_id("minecraft:entity_type", "minecraft:player").unwrap()

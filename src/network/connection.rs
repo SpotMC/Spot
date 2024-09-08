@@ -1,4 +1,4 @@
-use crate::entity::player::PlayerUpdate;
+use crate::entity::player::{Player, PlayerUpdate};
 use crate::network::connection::State::{Handshake, Login};
 use crate::network::packet::c2s::acknowledge_finish_configuration::acknowledge_finish_configuration;
 use crate::network::packet::c2s::client_info::client_information;
@@ -6,8 +6,9 @@ use crate::network::packet::c2s::known_packs_c2s::known_packs;
 use crate::network::packet::c2s::login_acknowledged::login_acknowledged;
 use crate::network::packet::c2s::login_start::login_start;
 use crate::network::packet::Encode;
-use crate::util::{read_str, read_var_int, write_var_int};
-use crate::{read_str, read_var_int, PROTOCOL_VERSION};
+use crate::util::direct_pointer::DirectPointer;
+use crate::util::io::{ReadExt, WriteExt};
+use crate::PROTOCOL_VERSION;
 use std::io::{Error, ErrorKind};
 use std::pin::{pin, Pin};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -20,7 +21,7 @@ macro_rules! decoders {
         match $packet.id {
             $($x=>{
                 let mut data = &*$packet.data;
-                read_var_int!(data);
+                data.read_var_int().await?;
                 $y(&mut $connection, &mut data).await?
             })*
             _ => {}
@@ -37,17 +38,17 @@ pub(crate) async fn read_socket(socket: &mut TcpStream) -> Result<(), Error> {
         match connection.state {
             Handshake => {
                 let mut data: Pin<&mut Box<&[u8]>> = pin!(Box::new(&*packet.data));
-                read_var_int!(data);
-                let protocol_version = read_var_int!(data);
+                data.read_var_int().await?;
+                let protocol_version = data.read_var_int().await?;
                 if protocol_version != PROTOCOL_VERSION {
                     return Err(Error::new(
                         ErrorKind::Unsupported,
                         format!("Invalid protocol version: {protocol_version}"),
                     ));
                 }
-                let _server_addr = read_str!(data);
+                let _server_addr = data.read_str().await?;
                 let _server_port = data.read_u16().await?;
-                let next_state = read_var_int!(data);
+                let next_state = data.read_var_int().await?;
                 if next_state != 2 {
                     return Ok(());
                 }
@@ -90,7 +91,8 @@ pub(crate) struct Connection<'a> {
     pub main_hand: Option<MainHand>,
     pub enable_text_filtering: Option<bool>,
     pub allow_server_listings: Option<bool>,
-    pub player: Option<i32>,
+    pub player_eid: Option<i32>,
+    pub player: Option<DirectPointer<Player>>,
     pub recv: Option<UnboundedReceiver<PlayerUpdate>>,
 }
 
@@ -119,23 +121,24 @@ impl Connection<'_> {
             enable_text_filtering: None,
             allow_server_listings: None,
             player: None,
+            player_eid: None,
             recv: None,
         }
     }
     pub(crate) async fn send_packet<D: Encode>(&mut self, data: &D) -> Result<(), Error> {
         let mut buf = Vec::with_capacity(1024);
-        write_var_int(&mut buf, data.get_id()).await?;
+        buf.write_var_int(data.get_id()).await?;
         data.encode(self, &mut buf).await?;
-        write_var_int(self.stream, buf.len() as i32).await?;
+        self.stream.write_var_int(buf.len() as i32).await?;
         self.stream.write_all(&buf).await?;
         Ok(())
     }
     async fn read_packet(&mut self) -> Result<Packet, Error> {
         self.stream.readable().await?;
-        let length = read_var_int!(self.stream);
+        let length = self.stream.read_var_int().await?;
         let mut buf = Vec::with_capacity(length as usize);
         self.stream.read_buf(&mut buf).await?;
-        let id = read_var_int!(buf.as_slice());
+        let id = buf.as_slice().read_var_int().await?;
         Ok(Packet { id, data: buf })
     }
 }

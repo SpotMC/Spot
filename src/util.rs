@@ -1,3 +1,6 @@
+pub mod direct_pointer;
+pub mod io;
+
 use std::io::{Error, ErrorKind};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
@@ -25,13 +28,6 @@ pub async fn read_var_int<R: AsyncRead + Unpin>(reader: &mut R) -> Result<i32, E
     }
     Err(Error::new(ErrorKind::InvalidData, "VarInt too big"))
 }
-
-#[macro_export]
-macro_rules! read_var_int {
-    ($reader:expr) => {
-        read_var_int(&mut $reader).await?
-    };
-}
 pub async fn write_var_int<W: AsyncWrite + Unpin>(writer: &mut W, value: i32) -> Result<(), Error> {
     let mut value = value as u32;
     loop {
@@ -55,49 +51,9 @@ pub async fn read_str<R: AsyncRead + Unpin>(reader: &mut R) -> Result<String, Er
     }
 }
 
-#[macro_export]
-macro_rules! read_str {
-    ($reader:expr) => {
-        read_str(&mut $reader).await?
-    };
-}
-
 pub async fn write_str<W: AsyncWrite + Unpin>(writer: &mut W, value: &str) -> Result<(), Error> {
     let bytes = value.as_bytes();
     write_var_int(writer, bytes.len() as i32).await?;
     writer.write_all(bytes).await?;
     Ok(())
-}
-
-#[macro_export]
-macro_rules! write_bool {
-    ($writer:expr, $bool:expr) => {
-        $writer.write_u8(if $bool { 1 } else { 0 }).await?
-    };
-}
-#[macro_export]
-macro_rules! read_bool {
-    ($reader:expr) => {
-        $reader.read_u8().await? != 0
-    };
-}
-
-#[macro_export]
-macro_rules! block_on {
-    ($block:block) => {
-        match tokio::runtime::Builder::new_current_thread().build() {
-            Ok(value) => value.block_on(async { $block }),
-            Err(err) => Err(Self::Error::new(err.to_string())),
-        }
-    };
-}
-
-#[macro_export]
-macro_rules! unwrap {
-    ($expr:expr) => {
-        match $expr {
-            Ok(value) => value,
-            Err(err) => return Err(Self::Error::new(err.to_string())),
-        }
-    };
 }

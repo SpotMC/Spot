@@ -1,8 +1,9 @@
 use crate::network::connection::Connection;
 use crate::network::packet::Encode;
+use crate::registry;
 use crate::registry::get_cache;
+use crate::util::io::WriteExt;
 use crate::util::{write_str, write_var_int};
-use crate::{registry, write_bool};
 use dashmap::DashMap;
 use serde::Serialize;
 use std::io::Error;
@@ -27,7 +28,7 @@ impl<'a, T: Serialize + registry::NbtSerializable> Encode for RegistryDataS2C<'a
         for key in self.index {
             let entry = self.map.get_mut(key).unwrap();
             write_str(buf, entry.key()).await?;
-            write_bool!(buf, true);
+            buf.write_bool(true).await?;
             buf.write_all(&get_cache(entry.key(), entry.value(), self.cache)?)
                 .await?;
         }
