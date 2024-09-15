@@ -14,6 +14,7 @@ pub mod damage_type;
 pub mod dimension_type;
 pub mod painting_variant;
 pub mod protocol_id;
+pub mod registries;
 pub mod wolf_variant;
 
 #[inline(always)]

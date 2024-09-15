@@ -1,6 +1,12 @@
+use crate::block::BlockState;
 use crate::GENERATED;
+use hashbrown::HashMap;
 use once_cell::sync::Lazy;
+use parking_lot::RwLock;
+use rayon::prelude::*;
+use serde::de::DeserializeOwned;
 use serde_json::Value;
+use std::sync::Arc;
 
 pub static REGISTRY: Lazy<Value> = Lazy::new(|| get_registry("registries.json"));
 pub static BLOCK_STATES: Lazy<Value> = Lazy::new(|| get_registry("blocks.json"));
@@ -27,6 +33,32 @@ pub fn get_protocol_id(registry_type: &str, name: &str) -> Option<u32> {
             .get("protocol_id")?
             .as_u64()? as u32,
     )
+}
+
+pub fn get_block_states<T: 'static + DeserializeOwned + BlockState>(
+    identifier: &str,
+) -> (HashMap<u32, Arc<(dyn BlockState)>>, u32) {
+    let values = BLOCK_STATES
+        .get(identifier)
+        .unwrap()
+        .as_object()
+        .unwrap()
+        .get("states")
+        .unwrap()
+        .as_array()
+        .unwrap();
+    let default = RwLock::from(0);
+    let map: RwLock<HashMap<u32, Arc<(dyn BlockState)>>> =
+        RwLock::from(HashMap::with_capacity(values.len()));
+    values.par_iter().for_each(|v| {
+        let v: T = serde_json::from_value(v.clone()).unwrap();
+        if v.is_default() {
+            let mut t = default.write();
+            *t = v.get_block_state();
+        }
+        map.write().insert(v.get_block_state(), Arc::from(v));
+    });
+    (map.into_inner(), default.into_inner())
 }
 
 #[cfg(test)]

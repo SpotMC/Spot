@@ -9,6 +9,7 @@ pub mod util;
 pub mod world;
 
 use crate::config::PORT;
+use crate::registry::registries::register_vanilla;
 use crate::registry::{
     BIOMES_INDEX, DAMAGE_TYPES_INDEX, DIMENSION_TYPES_INDEX, PAINTING_VARIANTS_INDEX,
     WOLF_VARIANTS_INDEX,
@@ -67,6 +68,7 @@ async fn main() {
             interval.tick().await;
         }
     });
+    register_vanilla();
     tokio::spawn(async move {
         async_info!("Network thread started.");
         async_info!("Time elapsed ", time.elapsed().as_nanos(), " ns");

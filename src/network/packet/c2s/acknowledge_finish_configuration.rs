@@ -4,7 +4,7 @@ use crate::network::connection::State::Play;
 use crate::network::packet::s2c::play_login_s2c::PlayLoginS2C;
 use crate::util::direct_pointer::DirectPointer;
 use crate::WORLD;
-use rand::random;
+use fastrand::i32;
 use std::io::Error;
 use tokio::io::AsyncRead;
 use tokio::sync::mpsc::unbounded_channel;
@@ -16,9 +16,9 @@ pub(crate) async fn acknowledge_finish_configuration<R: AsyncRead + Unpin>(
     unsafe {
         let world = WORLD.get_mut();
         let wsp = world.get_world_spawn_point();
-        let mut eid: i32 = random();
+        let mut eid: i32 = i32(i32::MIN..i32::MAX);
         while world.entities.get(eid).is_some() {
-            eid = random();
+            eid = i32(i32::MIN..i32::MAX);
         }
         let (tx, recv) = unbounded_channel();
         let mut player = Player::new(eid, wsp.0, tx, (wsp.1 as f64, wsp.2 as f64, wsp.3 as f64));
