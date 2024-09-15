@@ -1,5 +1,6 @@
 use crate::block::*;
 use crate::empty_block_state;
+use serde_derive::Deserialize;
 pub(crate) const DIRT: &str = "minecraft:dirt";
 pub struct Dirt {
     pub builder: BlockBuilder,

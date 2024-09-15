@@ -1,5 +1,6 @@
 use crate::block::*;
 use crate::empty_block_state;
+use serde_derive::Deserialize;
 pub(crate) const STONE: &str = "minecraft:stone";
 pub struct Stone {
     pub builder: BlockBuilder,
