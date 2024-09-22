@@ -1,5 +1,7 @@
+pub mod deepslate;
 pub mod dirt;
 pub mod grass_block;
+pub mod oak_log;
 pub mod stone;
 
 use crate::registry::protocol_id::{get_block_states, get_protocol_id};

@@ -11,7 +11,7 @@ impl Stone {
         Stone {
             builder: BlockBuilder::new::<StoneBlockState>(
                 STONE,
-                BlockSettings::new().strength(6.0),
+                BlockSettings::new().hardness(1.5).resistance(6.0),
             ),
         }
     }
