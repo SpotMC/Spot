@@ -1,3 +1,4 @@
+use crate::block::logs::LogProperties;
 use crate::block::*;
 use crate::block_state;
 use serde_derive::Deserialize;
@@ -23,8 +24,4 @@ impl OakLog {
     }
 }
 
-block_state!(OakLogBlockState, OakLogProperties, OAK_LOG);
-#[derive(Deserialize)]
-pub struct OakLogProperties {
-    axis: String,
-}
+block_state!(OakLogBlockState, LogProperties, OAK_LOG);

@@ -1,6 +1,11 @@
+pub mod birch_leaves;
+pub mod birch_log;
 pub mod deepslate;
 pub mod dirt;
 pub mod grass_block;
+pub mod leaves;
+pub mod logs;
+pub mod oak_leaves;
 pub mod oak_log;
 pub mod stone;
 
@@ -179,6 +184,25 @@ macro_rules! empty_block_state {
 
             fn is_default(&self) -> bool {
                 self.default
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! block_def {
+    ($name:tt, $builder:expr) => {
+        pub struct $name {
+            pub builder: BlockBuilder,
+        }
+        impl Block for $name {
+            fn get_builder(&self) -> &BlockBuilder {
+                &self.builder
+            }
+        }
+        impl $name {
+            pub(crate) fn new() -> $name {
+                $name { builder: $builder }
             }
         }
     };

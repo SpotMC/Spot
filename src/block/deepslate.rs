@@ -1,3 +1,4 @@
+use crate::block::logs::Axis;
 use crate::block::*;
 use crate::block_state;
 use serde_derive::Deserialize;
@@ -24,7 +25,7 @@ impl DeepSlate {
 
 #[derive(Deserialize)]
 pub struct DeepSlateProperties {
-    axis: String,
+    axis: Axis,
 }
 
 block_state!(DeepSlateBlockState, DeepSlateProperties, DEEPSLATE);
