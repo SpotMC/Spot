@@ -4,7 +4,9 @@ use crate::registry::DIMENSION_TYPES_INDEX;
 use crate::world::block_update::{BlockUpdate, BlockUpdateType};
 use crate::world::dimension::Dimension;
 use dashmap::DashSet;
+use parking_lot::RwLock;
 use rayon::prelude::*;
+use std::sync::Arc;
 use std::thread;
 
 pub mod block_update;
@@ -13,7 +15,7 @@ pub mod dimension;
 
 pub struct World {
     default_dimension: usize,
-    pub dimensions: Vec<Dimension>,
+    pub dimensions: Vec<Arc<RwLock<Dimension>>>,
     pub(crate) entities: EntityManager,
     block_updates_queue_1: Vec<BlockUpdate>,
     block_updates_queue_2: Vec<BlockUpdate>,
@@ -23,15 +25,15 @@ impl World {
     pub fn new() -> World {
         let mut dimensions = Vec::with_capacity(DIMENSION_TYPES_INDEX.len());
         for dim in DIMENSION_TYPES_INDEX.iter() {
-            dimensions.push(Dimension::new(
+            dimensions.push(Arc::new(RwLock::new(Dimension::new(
                 DIMENSION_TYPES.get(dim).unwrap().value().clone(),
                 dim.to_string(),
-            ));
+            ))));
         }
         World {
             default_dimension: dimensions
                 .iter()
-                .position(|it| it.dimension_name == "minecraft:overworld")
+                .position(|it| it.read().dimension_name == "minecraft:overworld")
                 .unwrap(),
             dimensions,
             entities: EntityManager::default(),
@@ -102,10 +104,13 @@ impl World {
         }
         self.swap_queues();
     }
-    pub fn find_dimension(&self, name: &str) -> Option<&Dimension> {
-        self.dimensions
-            .iter()
-            .find(|&dim| dim.dimension_name == name)
+    pub fn find_dimension(&self, name: &str) -> Option<Arc<RwLock<Dimension>>> {
+        Some(
+            self.dimensions
+                .iter()
+                .find(|&dim| dim.read().dimension_name == name)?
+                .clone(),
+        )
     }
 
     pub fn get_world_spawn_point(&self) -> (usize, i32, i32, i32) {

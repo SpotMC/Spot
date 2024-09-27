@@ -32,6 +32,7 @@ static ALLOCATOR: MiMalloc = MiMalloc;
 pub const PROTOCOL_VERSION: i32 = 767;
 pub const MINECRAFT_VERSION: &str = "1.21";
 include!(concat!(env!("OUT_DIR"), "/generated.rs"));
+//noinspection RsUnresolvedPath
 pub static GENERATED: Lazy<HashMap<&'static str, Resource>> = Lazy::new(generate);
 pub static mut WORLD: Lazy<RwLock<world::World>> = Lazy::new(|| RwLock::from(world::World::new()));
 pub static mut STOPPED: bool = false;

@@ -19,7 +19,7 @@ impl Encode for PlayLoginS2C<'_> {
         _connection: &mut Connection<'_>,
         buf: &mut W,
     ) -> Result<(), Error> {
-        buf.write_i32(self.player.entity_id).await?;
+        buf.write_i32(self.player.entity.entity_id).await?;
         buf.write_bool(false).await?;
         write_var_int(buf, DIMENSION_TYPES.len() as i32).await?;
         for dimension_type in DIMENSION_TYPES_INDEX.iter() {
@@ -31,10 +31,10 @@ impl Encode for PlayLoginS2C<'_> {
         buf.write_bool(false).await?;
         buf.write_bool(true).await?;
         buf.write_bool(false).await?;
-        write_var_int(buf, self.player.dimension as i32).await?;
+        write_var_int(buf, self.player.entity.dimension as i32).await?;
         write_str(
             buf,
-            match DIMENSION_TYPES_INDEX.get(self.player.dimension) {
+            match DIMENSION_TYPES_INDEX.get(self.player.entity.dimension) {
                 Some(index) => index,
                 None => return Err(Error::new(ErrorKind::Other, "Dimension type not found")),
             },
@@ -60,7 +60,7 @@ impl Encode for PlayLoginS2C<'_> {
                 buf.write_bool(false).await?;
             }
         }
-        write_var_int(buf, self.player.portal_cooldown).await?;
+        write_var_int(buf, self.player.entity.portal_cooldown).await?;
         buf.write_bool(false).await?;
         Ok(())
     }
