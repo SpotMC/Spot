@@ -24,6 +24,7 @@ impl DeepSlate {
 }
 
 #[derive(Deserialize)]
+#[allow(unused)]
 pub struct DeepSlateProperties {
     axis: Axis,
 }

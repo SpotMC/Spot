@@ -20,11 +20,14 @@ use once_cell::sync::Lazy;
 use parking_lot::RwLock;
 use static_files::Resource;
 use std::collections::HashMap;
-use tklog::Async::Log;
-use tklog::{async_debug, async_info, async_trace, MODE};
-use tokio::io::AsyncWriteExt;
-use tokio::net::TcpListener;
+use std::io::Error;
+use std::net::SocketAddr;
+use tokio::io::{stdin, AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::net::{TcpListener, TcpStream};
 use tokio::time::MissedTickBehavior::Skip;
+use tracing::{debug, info, instrument, trace};
+use tracing_subscriber::fmt;
+use tracing_subscriber::fmt::format;
 
 #[global_allocator]
 static ALLOCATOR: MiMalloc = MiMalloc;
@@ -35,34 +38,47 @@ include!(concat!(env!("OUT_DIR"), "/generated.rs"));
 //noinspection RsUnresolvedPath
 pub static GENERATED: Lazy<HashMap<&'static str, Resource>> = Lazy::new(generate);
 pub static mut WORLD: Lazy<RwLock<world::World>> = Lazy::new(|| RwLock::from(world::World::new()));
-pub static mut STOPPED: bool = false;
 #[tokio::main]
+#[instrument]
 async fn main() {
-    Log.set_cutmode_by_time("./logs/latest.log", MODE::DAY, 0, true)
-        .await;
+    fmt()
+        .event_format(
+            format()
+                .with_target(true)
+                .with_line_number(true)
+                .with_ansi(true)
+                .with_file(true)
+                .with_thread_names(true)
+                .with_source_location(true),
+        )
+        .init();
+    tokio::spawn(async {
+        loop {
+            let mut reader = BufReader::new(stdin());
+            let mut buf = String::new();
+            reader
+                .read_line(&mut buf)
+                .await
+                .expect("Error in reading commands from stdin.");
+        }
+    });
     let time = std::time::Instant::now();
+    info!("Binding PORT: {:?}.", *PORT);
     let listener = TcpListener::bind(format!("127.0.0.1:{}", *PORT))
         .await
         .unwrap();
-    async_info!("Binding PORT: ", *PORT);
-    async_info!("Loaded ", BIOMES_INDEX.len(), " biomes.");
-    async_info!("Loaded ", DIMENSION_TYPES_INDEX.len(), " dimension types.");
-    async_info!("Loaded ", DAMAGE_TYPES_INDEX.len(), " damage types.");
-    async_info!("Loaded ", WOLF_VARIANTS_INDEX.len(), " wolf variants.");
-    async_info!(
-        "Loaded ",
-        PAINTING_VARIANTS_INDEX.len(),
-        " painting variants."
+    info!("Loaded {:?} biomes.", BIOMES_INDEX.len());
+    info!("Loaded {:?} dimension types.", DIMENSION_TYPES_INDEX.len());
+    info!("Loaded {:?} damage types.", DAMAGE_TYPES_INDEX.len());
+    info!("Loaded {:?} wolf variants.", WOLF_VARIANTS_INDEX.len());
+    info!(
+        "Loaded {:?} painting variants.",
+        PAINTING_VARIANTS_INDEX.len()
     );
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(std::time::Duration::from_millis(50));
         interval.set_missed_tick_behavior(Skip);
         loop {
-            unsafe {
-                if STOPPED {
-                    break;
-                }
-            }
             unsafe {
                 WORLD.write().tick();
             }
@@ -71,33 +87,33 @@ async fn main() {
     });
     register_vanilla();
     tokio::spawn(async move {
-        async_info!("Network thread started.");
-        async_info!("Time elapsed ", time.elapsed().as_nanos(), " ns");
+        info!("Network thread started.");
+        info!("Time elapsed {:?} ns", time.elapsed().as_nanos());
         loop {
-            unsafe {
-                if STOPPED {
-                    break;
-                }
-            }
-            match listener.accept().await {
-                Ok((mut socket, _addr)) => {
-                    tokio::spawn(async move {
-                        async_trace!("New connection accepted");
-                        match read_socket(&mut socket).await {
-                            Ok(()) => {}
-                            Err(err) => {
-                                async_debug!("Error in handling packet: ", err);
-                                let _ = socket.shutdown().await;
-                            }
-                        }
-                    });
-                }
-                Err(err) => {
-                    async_debug!("Error in accepting connection: ", err)
-                }
-            }
+            accept_connection(listener.accept().await).await;
         }
     })
     .await
     .unwrap();
+}
+
+#[instrument]
+async fn accept_connection(result: Result<(TcpStream, SocketAddr), Error>) {
+    match result {
+        Ok((mut socket, _addr)) => {
+            tokio::spawn(async move {
+                trace!("New connection accepted");
+                match read_socket(&mut socket).await {
+                    Ok(()) => {}
+                    Err(err) => {
+                        debug!("Error in handling packet: {:?}", err);
+                        let _ = socket.shutdown().await;
+                    }
+                }
+            });
+        }
+        Err(err) => {
+            debug!("Error in accepting connection: {:?}", err)
+        }
+    }
 }
