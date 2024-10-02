@@ -4,7 +4,6 @@ use crate::registry::DIMENSION_TYPES_INDEX;
 use crate::world::block_update::{BlockUpdate, BlockUpdateType};
 use crate::world::dimension::Dimension;
 use dashmap::DashSet;
-use parking_lot::RwLock;
 use rayon::prelude::*;
 use std::sync::Arc;
 use std::thread;
@@ -15,7 +14,7 @@ pub mod dimension;
 
 pub struct World {
     default_dimension: usize,
-    pub dimensions: Vec<Arc<RwLock<Dimension>>>,
+    pub dimensions: Vec<Arc<Dimension>>,
     pub(crate) entities: EntityManager,
     block_updates_queue_1: Vec<BlockUpdate>,
     block_updates_queue_2: Vec<BlockUpdate>,
@@ -24,16 +23,20 @@ pub struct World {
 impl World {
     pub fn new() -> World {
         let mut dimensions = Vec::with_capacity(DIMENSION_TYPES_INDEX.len());
-        for dim in DIMENSION_TYPES_INDEX.iter() {
-            dimensions.push(Arc::new(RwLock::new(Dimension::new(
+        let mut idx = 0;
+        while idx < DIMENSION_TYPES_INDEX.len() {
+            let dim = DIMENSION_TYPES_INDEX.get(idx).unwrap();
+            dimensions.push(Arc::new(Dimension::new(
                 DIMENSION_TYPES.get(dim).unwrap().value().clone(),
                 dim.to_string(),
-            ))));
+                idx as u32,
+            )));
+            idx += 1;
         }
         World {
             default_dimension: dimensions
                 .iter()
-                .position(|it| it.read().dimension_name == "minecraft:overworld")
+                .position(|it| it.dimension_name == "minecraft:overworld")
                 .unwrap(),
             dimensions,
             entities: EntityManager::default(),
@@ -104,11 +107,11 @@ impl World {
         }
         self.swap_queues();
     }
-    pub fn find_dimension(&self, name: &str) -> Option<Arc<RwLock<Dimension>>> {
+    pub fn find_dimension(&self, name: &str) -> Option<Arc<Dimension>> {
         Some(
             self.dimensions
                 .iter()
-                .find(|&dim| dim.read().dimension_name == name)?
+                .find(|&dim| dim.dimension_name == name)?
                 .clone(),
         )
     }

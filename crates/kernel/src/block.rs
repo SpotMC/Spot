@@ -54,6 +54,7 @@ pub(crate) static BLOCKS_BY_ID: Lazy<DashMap<u32, Box<dyn Block>>> = Lazy::new(D
 pub(crate) static BLOCKS_BY_NAME: Lazy<DashMap<String, u32>> = Lazy::new(DashMap::new);
 pub(crate) static BLOCK_STATES_BY_ID: Lazy<DashMap<u32, Arc<(dyn BlockState)>>> =
     Lazy::new(DashMap::new);
+pub(crate) static BLOCK_ITEM_BY_ID: Lazy<DashMap<u32, u32>> = Lazy::new(DashMap::new);
 
 pub fn register_block(id: &str, block: Box<dyn Block + 'static>) {
     block.get_block_states().into_iter().for_each(|(k, v)| {

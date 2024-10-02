@@ -1,7 +1,6 @@
 use crate::world::dimension::Dimension;
 use crate::WORLD;
 use downcast_rs::{impl_downcast, DowncastSync};
-use parking_lot::RwLock;
 use std::sync::Arc;
 
 pub mod entity_manager;
@@ -19,7 +18,7 @@ pub trait Entity: Send + Sync + DowncastSync {
         self.get_data_mut().pos = (x, y, z);
     }
 
-    fn get_dimension(&mut self) -> Arc<RwLock<Dimension>> {
+    fn get_dimension(&mut self) -> Arc<Dimension> {
         unsafe {
             WORLD
                 .read()
@@ -36,7 +35,7 @@ pub trait Entity: Send + Sync + DowncastSync {
                 .read()
                 .dimensions
                 .iter()
-                .position(|d| d.read().dimension_name == dimension)
+                .position(|d| d.dimension_name == dimension)
                 .unwrap();
         }
     }

@@ -1,8 +1,0 @@
-[INFO] 2024-09-27 23:57:36 main.rs 47:Binding PORT: 25565
-[INFO] 2024-09-27 23:57:36 main.rs 48:Loaded 64 biomes.
-[INFO] 2024-09-27 23:57:36 main.rs 49:Loaded 3 dimension types.
-[INFO] 2024-09-27 23:57:36 main.rs 50:Loaded 46 damage types.
-[INFO] 2024-09-27 23:57:36 main.rs 51:Loaded 9 wolf variants.
-[INFO] 2024-09-27 23:57:36 main.rs 52:Loaded 46 painting variants.
-[INFO] 2024-09-27 23:57:36 main.rs 74:Network thread started.
-[INFO] 2024-09-27 23:57:36 main.rs 75:Time elapsed 428054541 ns

@@ -1,6 +1,7 @@
 pub mod block;
 pub mod config;
 pub mod entity;
+pub mod item;
 pub mod nbt;
 pub(crate) mod network;
 pub mod registry;
