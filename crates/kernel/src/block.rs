@@ -10,7 +10,7 @@ pub mod oak_log;
 pub mod stone;
 
 use crate::registry::protocol_id::{get_block_states, get_protocol_id};
-use crate::world::block_update::BlockUpdateType;
+use crate::world::block_update::{BlockUpdate, BlockUpdateType};
 use crate::world::dimension::Dimension;
 use dashmap::DashMap;
 use downcast_rs::{impl_downcast, DowncastSync};
@@ -24,9 +24,10 @@ pub trait Block: Send + Sync + DowncastSync {
         &self,
         _update_type: BlockUpdateType,
         _pos: (i32, i32, i32),
-        _dimension: &mut Dimension,
+        _dimension: Arc<Dimension>,
         _state: u32,
-    ) {
+    ) -> Vec<BlockUpdate> {
+        Vec::with_capacity(0)
     }
     fn get_builder(&self) -> &BlockBuilder;
     fn get_block_id(&self) -> u32 {

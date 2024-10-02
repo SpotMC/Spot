@@ -1,8 +1,27 @@
+use crate::block::BLOCK_ITEM_BY_ID;
 use crate::registry::protocol_id::get_protocol_id;
+use dashmap::DashMap;
 use downcast_rs::{impl_downcast, DowncastSync};
+use once_cell::sync::Lazy;
 
+pub(crate) static ITEMS_BY_ID: Lazy<DashMap<u32, Box<dyn Item>>> = Lazy::new(DashMap::new);
+pub(crate) static ITEMS_BY_NAME: Lazy<DashMap<String, u32>> = Lazy::new(DashMap::new);
+pub fn register_item(id: &str, item: Box<dyn Item + 'static>) {
+    let protocol_id = item.get_item_id();
+    ITEMS_BY_NAME.insert(id.to_string(), protocol_id);
+    ITEMS_BY_ID.insert(protocol_id, item);
+}
+pub fn register_block_item(id: &str, item: Box<dyn Item + 'static>, block: u32) {
+    let protocol_id = item.get_item_id();
+    BLOCK_ITEM_BY_ID.insert(block, protocol_id);
+    ITEMS_BY_NAME.insert(id.to_string(), protocol_id);
+    ITEMS_BY_ID.insert(protocol_id, item);
+}
 pub trait Item: Send + Sync + DowncastSync {
     fn get_builder(&self) -> &ItemBuilder;
+    fn get_item_id(&self) -> u32 {
+        self.get_builder().protocol_id
+    }
 }
 impl_downcast!(sync Item);
 
