@@ -4,51 +4,67 @@ use crate::network::connection::Connection;
 use crate::network::packet::Encode;
 use crate::registry::dimension_type::DIMENSION_TYPES;
 use crate::registry::DIMENSION_TYPES_INDEX;
+use crate::util::encode_position;
 use crate::util::io::WriteExt;
-use crate::util::{encode_position, write_str, write_var_int};
+use parking_lot::Mutex;
 use std::io::{Error, ErrorKind};
+use std::sync::Arc;
 use tokio::io::{AsyncWrite, AsyncWriteExt};
 
-pub struct PlayLoginS2C<'a> {
-    pub player: &'a Player,
+pub struct PlayLoginS2C {
+    pub player: Arc<Mutex<Player>>,
 }
 
-impl Encode for PlayLoginS2C<'_> {
+impl Encode for PlayLoginS2C {
     async fn encode<W: AsyncWrite + Unpin>(
         &self,
         _connection: &mut Connection<'_>,
         buf: &mut W,
     ) -> Result<(), Error> {
-        buf.write_i32(self.player.entity.entity_id).await?;
+        let (eid, dim, game_mode, previous_game_mode, death_location, portal_cooldown) = {
+            let player = self.player.lock();
+            let eid = player.entity.entity_id;
+            let dim = player.entity.dimension;
+            let game_mode = player.game_mode;
+            let previous_game_mode = player.previous_game_mode;
+            let death_location = player.death_location.clone();
+            let portal_cooldown = player.entity.portal_cooldown;
+            (
+                eid,
+                dim,
+                game_mode,
+                previous_game_mode,
+                death_location,
+                portal_cooldown,
+            )
+        };
+        buf.write_i32(eid).await?;
         buf.write_bool(false).await?;
-        write_var_int(buf, DIMENSION_TYPES.len() as i32).await?;
+        buf.write_var_int(DIMENSION_TYPES.len() as i32).await?;
         for dimension_type in DIMENSION_TYPES_INDEX.iter() {
-            write_str(buf, dimension_type).await?;
+            buf.write_str(dimension_type).await?;
         }
-        write_var_int(buf, *MAX_PLAYERS).await?;
-        write_var_int(buf, *VIEW_DISTANCE).await?;
-        write_var_int(buf, *SIMULATION_DISTANCE).await?;
+        buf.write_var_int(*MAX_PLAYERS).await?;
+        buf.write_var_int(*VIEW_DISTANCE).await?;
+        buf.write_var_int(*SIMULATION_DISTANCE).await?;
         buf.write_bool(false).await?;
         buf.write_bool(true).await?;
         buf.write_bool(false).await?;
-        write_var_int(buf, self.player.entity.dimension as i32).await?;
-        write_str(
-            buf,
-            match DIMENSION_TYPES_INDEX.get(self.player.entity.dimension) {
-                Some(index) => index,
-                None => return Err(Error::new(ErrorKind::Other, "Dimension type not found")),
-            },
-        )
+        buf.write_var_int(dim as i32).await?;
+        buf.write_str(match DIMENSION_TYPES_INDEX.get(dim) {
+            Some(index) => index,
+            None => return Err(Error::new(ErrorKind::Other, "Dimension type not found")),
+        })
         .await?;
         buf.write_i64(*HASHED_SEED).await?;
-        buf.write_u8(self.player.game_mode).await?;
-        buf.write_i8(self.player.previous_game_mode).await?;
+        buf.write_u8(game_mode).await?;
+        buf.write_i8(previous_game_mode).await?;
         buf.write_bool(false).await?;
         buf.write_bool(false).await?;
-        match &self.player.death_location {
+        match &death_location {
             Some(death_location) => {
                 buf.write_bool(true).await?;
-                write_str(buf, &death_location.0).await?;
+                buf.write_str(&death_location.0).await?;
                 buf.write_u64(encode_position(
                     death_location.1,
                     death_location.2,
@@ -60,7 +76,7 @@ impl Encode for PlayLoginS2C<'_> {
                 buf.write_bool(false).await?;
             }
         }
-        write_var_int(buf, self.player.entity.portal_cooldown).await?;
+        buf.write_var_int(portal_cooldown).await?;
         buf.write_bool(false).await?;
         Ok(())
     }

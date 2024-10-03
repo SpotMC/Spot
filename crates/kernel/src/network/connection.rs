@@ -6,11 +6,12 @@ use crate::network::packet::c2s::known_packs_c2s::known_packs;
 use crate::network::packet::c2s::login_acknowledged::login_acknowledged;
 use crate::network::packet::c2s::login_start::login_start;
 use crate::network::packet::Encode;
-use crate::util::direct_pointer::DirectPointer;
 use crate::util::io::{ReadExt, WriteExt};
 use crate::PROTOCOL_VERSION;
+use parking_lot::Mutex;
 use std::io::{Error, ErrorKind};
 use std::pin::{pin, Pin};
+use std::sync::Arc;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::sync::mpsc::UnboundedReceiver;
@@ -92,7 +93,7 @@ pub(crate) struct Connection<'a> {
     pub enable_text_filtering: Option<bool>,
     pub allow_server_listings: Option<bool>,
     pub player_eid: Option<i32>,
-    pub player: Option<DirectPointer<Player>>,
+    pub player: Option<Arc<Mutex<Player>>>,
     pub recv: Option<UnboundedReceiver<PlayerUpdate>>,
 }
 

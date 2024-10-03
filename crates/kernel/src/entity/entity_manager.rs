@@ -1,32 +1,32 @@
 use crate::entity::Entity;
-use hashbrown::HashMap;
+use dashmap::DashMap;
+use parking_lot::Mutex;
+use std::sync::Arc;
 
 pub struct EntityManager {
-    entities: HashMap<i32, Box<dyn Entity>>,
+    entities: DashMap<i32, Arc<Mutex<dyn Entity>>>,
 }
 
 impl EntityManager {
     pub fn new() -> EntityManager {
         EntityManager {
-            entities: HashMap::with_capacity(128),
+            entities: DashMap::with_capacity(128),
         }
     }
-    pub fn spawn(&mut self, entity: Box<dyn Entity>, eid: i32) {
-        self.entities.insert(eid, entity);
+    pub fn spawn_into<T: Entity>(&self, entity: T, eid: i32) {
+        self.entities.insert(eid, Arc::new(Mutex::new(entity)));
     }
-    pub fn get_mut(&mut self, eid: i32) -> Option<&mut Box<dyn Entity>> {
+    pub fn spawn(&self, entity: &Arc<Mutex<dyn Entity>>) {
+        self.entities
+            .insert(entity.lock().get_eid(), entity.clone());
+    }
+    pub fn get_mut(&self, eid: i32) -> Option<Arc<Mutex<dyn Entity>>> {
         match self.entities.get_mut(&eid) {
-            Some(e) => Some(e),
+            Some(e) => Some(e.value().clone()),
             None => None,
         }
     }
-    pub fn get(&self, eid: i32) -> Option<&Box<dyn Entity>> {
-        match self.entities.get(&eid) {
-            Some(e) => Some(e),
-            None => None,
-        }
-    }
-    pub fn remove(&mut self, eid: i32) -> Option<Box<dyn Entity>> {
+    pub fn remove(&self, eid: i32) -> Option<(i32, Arc<Mutex<dyn Entity>>)> {
         self.entities.remove(&eid)
     }
 }

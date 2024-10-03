@@ -37,7 +37,7 @@ pub struct ItemBuilder {
 impl ItemBuilder {
     fn new(id: &str, item_settings: ItemSettings) -> ItemBuilder {
         ItemBuilder {
-            protocol_id: get_protocol_id("minecraft:item", &id).unwrap(),
+            protocol_id: get_protocol_id("minecraft:item", id).unwrap(),
             item_settings,
         }
     }

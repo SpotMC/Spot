@@ -17,7 +17,7 @@ pub mod dimension;
 pub struct World {
     default_dimension: usize,
     pub dimensions: Vec<Arc<Dimension>>,
-    pub(crate) entities: EntityManager,
+    pub entities: EntityManager,
     block_updates_queue_1: Vec<BlockUpdate>,
     block_updates_queue_2: Vec<BlockUpdate>,
     use_2: bool,
