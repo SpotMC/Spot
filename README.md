@@ -1,10 +1,12 @@
-<div align="center"> 
-
 # Spot
+
+<div align="center"> 
 
 ![CI](https://github.com/SpotMC/Spot/actions/workflows/build.yml/badge.svg)
 [![License: LGPL](https://img.shields.io/badge/License-LGPL--2.1-red.svg)](https://opensource.org/license/lgpl-2-1)
 ![Current version)](https://img.shields.io/badge/Working_On-1.21.1-yellow)
+
+</div>
 
 ## About
 
@@ -32,5 +34,3 @@ If you want to submit a pull request, here are some requirements for you:
 
 ## Special Thanks
 [wiki.vg](https://wiki.vg/) |  [Minecraft Wiki](https://minecraft.wiki)
-
-</div>
