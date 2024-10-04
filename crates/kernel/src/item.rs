@@ -1,17 +1,21 @@
+pub mod dirt_item;
+pub mod grass_block_item;
+pub mod stone_item;
+
 use crate::block::BLOCK_ITEM_BY_ID;
 use crate::registry::protocol_id::get_protocol_id;
 use dashmap::DashMap;
 use downcast_rs::{impl_downcast, DowncastSync};
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
 
-pub(crate) static ITEMS_BY_ID: Lazy<DashMap<u32, Box<dyn Item>>> = Lazy::new(DashMap::new);
-pub(crate) static ITEMS_BY_NAME: Lazy<DashMap<String, u32>> = Lazy::new(DashMap::new);
+pub(crate) static ITEMS_BY_ID: LazyLock<DashMap<u32, Box<dyn Item>>> = LazyLock::new(DashMap::new);
+pub(crate) static ITEMS_BY_NAME: LazyLock<DashMap<String, u32>> = LazyLock::new(DashMap::new);
 pub fn register_item(id: &str, item: Box<dyn Item + 'static>) {
     let protocol_id = item.get_item_id();
     ITEMS_BY_NAME.insert(id.to_string(), protocol_id);
     ITEMS_BY_ID.insert(protocol_id, item);
 }
-pub fn register_block_item(id: &str, item: Box<dyn Item + 'static>, block: u32) {
+pub fn register_block_item(id: &str, block: u32, item: Box<dyn Item + 'static>) {
     let protocol_id = item.get_item_id();
     BLOCK_ITEM_BY_ID.insert(block, protocol_id);
     ITEMS_BY_NAME.insert(id.to_string(), protocol_id);
@@ -26,7 +30,7 @@ pub trait Item: Send + Sync + DowncastSync {
 impl_downcast!(sync Item);
 
 pub trait BlockItem: Item {
-    fn get_block() -> u32;
+    fn get_block(&self) -> u32;
 }
 
 pub struct ItemBuilder {
@@ -75,4 +79,53 @@ impl Default for ItemSettings {
     fn default() -> Self {
         Self::new()
     }
+}
+
+#[macro_export]
+macro_rules! item_def {
+    ($name:tt, $id:expr, $settings:expr) => {
+        pub struct $name {
+            builder: ItemBuilder,
+        }
+        impl Item for $name {
+            fn get_builder(&self) -> &ItemBuilder {
+                &self.builder
+            }
+        }
+        impl $name {
+            pub fn new() -> $name {
+                $name {
+                    builder: ItemBuilder::new($id, $settings),
+                }
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! block_item_def {
+    ($name:tt, $id:expr, $settings:expr) => {
+        pub struct $name {
+            builder: ItemBuilder,
+            block_id: u32,
+        }
+        impl Item for $name {
+            fn get_builder(&self) -> &ItemBuilder {
+                &self.builder
+            }
+        }
+        impl $name {
+            pub fn new(block_id: u32) -> $name {
+                $name {
+                    builder: ItemBuilder::new($id, $settings),
+                    block_id,
+                }
+            }
+        }
+        impl BlockItem for $name {
+            fn get_block(&self) -> u32 {
+                self.block_id
+            }
+        }
+    };
 }

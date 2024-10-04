@@ -1,4 +1,3 @@
-pub mod direct_pointer;
 pub mod io;
 
 use std::io::{Error, ErrorKind};

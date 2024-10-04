@@ -35,7 +35,6 @@ pub(crate) async fn read_socket(socket: &mut TcpStream) -> Result<(), Error> {
     let mut connection = Connection::new(socket);
     loop {
         let packet = connection.read_packet().await?;
-        yield_now().await;
         match connection.state {
             Handshake => {
                 let mut data: Pin<&mut Box<&[u8]>> = pin!(Box::new(&*packet.data));
@@ -74,7 +73,6 @@ pub(crate) async fn read_socket(socket: &mut TcpStream) -> Result<(), Error> {
         if let Some(recv) = &mut connection.recv {
             while let Ok(update) = &recv.try_recv() {
                 // TODO
-                yield_now().await;
             }
         }
     }

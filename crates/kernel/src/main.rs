@@ -3,7 +3,6 @@ pub mod block;
 pub mod config;
 pub mod entity;
 pub mod item;
-pub mod nbt;
 pub(crate) mod network;
 pub mod registry;
 mod test;
@@ -18,14 +17,15 @@ use crate::registry::{
 };
 use mimalloc::MiMalloc;
 use network::connection::read_socket;
-use once_cell::sync::Lazy;
 use parking_lot::RwLock;
 use static_files::Resource;
 use std::collections::HashMap;
 use std::io::Error;
 use std::net::SocketAddr;
+use std::sync::LazyLock;
 use tokio::io::{stdin, AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::{TcpListener, TcpStream};
+use tokio::task::block_in_place;
 use tokio::time::MissedTickBehavior::Skip;
 use tracing::{debug, info, instrument, trace};
 use tracing_subscriber::fmt;
@@ -35,11 +35,11 @@ use tracing_subscriber::fmt::format;
 static ALLOCATOR: MiMalloc = MiMalloc;
 
 pub const PROTOCOL_VERSION: i32 = 767;
-pub const MINECRAFT_VERSION: &str = "1.21";
+pub const MINECRAFT_VERSION: &str = "1.21"; // 1.21 - 1.21.1 ( Protocol 767 )
 include!(concat!(env!("OUT_DIR"), "/generated.rs"));
-//noinspection RsUnresolvedPath
-pub static GENERATED: Lazy<HashMap<&'static str, Resource>> = Lazy::new(generate);
-pub static mut WORLD: Lazy<RwLock<world::World>> = Lazy::new(|| RwLock::from(world::World::new()));
+pub static GENERATED: LazyLock<HashMap<&'static str, Resource>> = LazyLock::new(generate);
+pub static WORLD: LazyLock<RwLock<world::World>> =
+    LazyLock::new(|| RwLock::from(world::World::new()));
 #[tokio::main]
 #[instrument]
 async fn main() {
@@ -77,17 +77,17 @@ async fn main() {
         "Loaded {:?} painting variants.",
         PAINTING_VARIANTS_INDEX.len()
     );
+    register_vanilla();
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(std::time::Duration::from_millis(50));
         interval.set_missed_tick_behavior(Skip);
         loop {
-            unsafe {
+            block_in_place(|| {
                 WORLD.write().tick();
-            }
+            });
             interval.tick().await;
         }
     });
-    register_vanilla();
     tokio::spawn(async move {
         info!("Network thread started.");
         info!("Time elapsed {:?} ns", time.elapsed().as_nanos());

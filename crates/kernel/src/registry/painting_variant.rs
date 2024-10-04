@@ -1,12 +1,12 @@
-use crate::nbt::{NbtCompound, NbtInt, NbtString, NbtTag};
 use crate::registry::NbtSerializable;
-use crate::{nbt_int, nbt_str};
 use dashmap::DashMap;
-use once_cell::sync::Lazy;
 use serde_derive::{Deserialize, Serialize};
+use spotlight::nbt::{NbtCompound, NbtInt, NbtString, NbtTag};
+use spotlight::{nbt_int, nbt_str};
+use std::sync::LazyLock;
 
-pub static PAINTING_VARIANTS: Lazy<DashMap<String, PaintingVariant>> =
-    Lazy::new(|| init_registry_map());
+pub static PAINTING_VARIANTS: LazyLock<DashMap<String, PaintingVariant>> =
+    LazyLock::new(init_registry_map);
 #[inline]
 fn init_registry_map() -> DashMap<String, PaintingVariant> {
     let map: DashMap<String, PaintingVariant> = DashMap::new();

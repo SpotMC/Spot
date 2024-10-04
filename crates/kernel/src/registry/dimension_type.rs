@@ -1,12 +1,12 @@
-use crate::nbt::*;
 use crate::registry::{load_static_registries, NbtSerializable};
-use crate::{nbt_byte, nbt_double, nbt_float, nbt_int, nbt_long, nbt_str};
 use dashmap::DashMap;
-use once_cell::sync::Lazy;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
+use spotlight::nbt::*;
+use spotlight::{nbt_byte, nbt_double, nbt_float, nbt_int, nbt_long, nbt_str};
+use std::sync::LazyLock;
 
-pub static DIMENSION_TYPES: Lazy<DashMap<String, DimensionType>> = Lazy::new(|| {
+pub static DIMENSION_TYPES: LazyLock<DashMap<String, DimensionType>> = LazyLock::new(|| {
     load_static_registries("dimension_types.json", |v: Value| {
         let dim: DimensionType = serde_json::from_value(v).unwrap();
         dim

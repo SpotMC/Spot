@@ -1,12 +1,12 @@
-use crate::nbt::*;
 use crate::registry::{load_static_registries, NbtSerializable};
-use crate::{nbt_double, nbt_str};
 use dashmap::DashMap;
-use once_cell::sync::Lazy;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
+use spotlight::nbt::*;
+use spotlight::{nbt_double, nbt_str};
+use std::sync::LazyLock;
 
-pub static DAMAGE_TYPES: Lazy<DashMap<String, DamageType>> = Lazy::new(|| {
+pub static DAMAGE_TYPES: LazyLock<DashMap<String, DamageType>> = LazyLock::new(|| {
     load_static_registries("damage_types.json", |v: Value| {
         let damage_type: DamageType = serde_json::from_value(v).unwrap();
         damage_type

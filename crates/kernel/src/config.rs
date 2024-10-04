@@ -1,8 +1,8 @@
-use once_cell::sync::Lazy;
 use sha2::{Digest, Sha256};
+use std::sync::LazyLock;
 use toml::{toml, Value};
 
-static TOML: Lazy<Value> = Lazy::new(|| {
+static TOML: LazyLock<Value> = LazyLock::new(|| {
     if let Ok(file) = std::fs::read_to_string("./config.toml") {
         toml::from_str(&file).unwrap()
     } else {
@@ -17,19 +17,20 @@ static TOML: Lazy<Value> = Lazy::new(|| {
         toml
     }
 });
-pub static PORT: Lazy<i32> = Lazy::new(|| TOML.get("port").unwrap().as_integer().unwrap() as i32);
-pub static MAX_PLAYERS: Lazy<i32> =
-    Lazy::new(|| TOML.get("max-players").unwrap().as_integer().unwrap() as i32);
-pub static VIEW_DISTANCE: Lazy<i32> =
-    Lazy::new(|| TOML.get("view-distance").unwrap().as_integer().unwrap() as i32);
-pub static SIMULATION_DISTANCE: Lazy<i32> = Lazy::new(|| {
+pub static PORT: LazyLock<i32> =
+    LazyLock::new(|| TOML.get("port").unwrap().as_integer().unwrap() as i32);
+pub static MAX_PLAYERS: LazyLock<i32> =
+    LazyLock::new(|| TOML.get("max-players").unwrap().as_integer().unwrap() as i32);
+pub static VIEW_DISTANCE: LazyLock<i32> =
+    LazyLock::new(|| TOML.get("view-distance").unwrap().as_integer().unwrap() as i32);
+pub static SIMULATION_DISTANCE: LazyLock<i32> = LazyLock::new(|| {
     TOML.get("simulation-distance")
         .unwrap()
         .as_integer()
         .unwrap() as i32
 });
-pub static SEED: Lazy<i64> = Lazy::new(|| TOML.get("seed").unwrap().as_integer().unwrap());
-pub static HASHED_SEED: Lazy<i64> = Lazy::new(|| {
+pub static SEED: LazyLock<i64> = LazyLock::new(|| TOML.get("seed").unwrap().as_integer().unwrap());
+pub static HASHED_SEED: LazyLock<i64> = LazyLock::new(|| {
     let mut sha = Sha256::new();
     sha.update(SEED.to_be_bytes());
     let hash_result = sha.finalize();

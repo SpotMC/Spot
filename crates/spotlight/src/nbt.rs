@@ -58,7 +58,7 @@ where
     value.serialize(buf);
 }
 pub struct NbtCompound {
-    pub(crate) data: DashMap<String, Box<dyn NbtTag>>,
+    pub data: DashMap<String, Box<dyn NbtTag>>,
 }
 impl NbtTag for NbtCompound {
     fn get_type(&self) -> u8 {
@@ -78,8 +78,8 @@ impl NbtTag for NbtCompound {
 }
 
 pub struct NbtList<T: NbtTag> {
-    pub(crate) data: Vec<T>,
-    pub(crate) tag_type: u8,
+    pub data: Vec<T>,
+    pub tag_type: u8,
 }
 impl<T: NbtTag> NbtTag for NbtList<T> {
     fn get_type(&self) -> u8 {
@@ -94,7 +94,7 @@ impl<T: NbtTag> NbtTag for NbtList<T> {
 }
 
 pub struct NbtByteArray {
-    pub(crate) data: Vec<u8>,
+    pub data: Vec<u8>,
 }
 
 impl NbtTag for NbtByteArray {
@@ -109,7 +109,7 @@ impl NbtTag for NbtByteArray {
 }
 
 pub struct NbtIntArray {
-    pub(crate) data: Vec<i32>,
+    pub data: Vec<i32>,
 }
 
 impl NbtTag for NbtIntArray {
@@ -124,7 +124,7 @@ impl NbtTag for NbtIntArray {
 }
 
 pub struct NbtLongArray {
-    pub(crate) data: Vec<i64>,
+    pub data: Vec<i64>,
 }
 
 impl NbtTag for NbtLongArray {
@@ -139,7 +139,7 @@ impl NbtTag for NbtLongArray {
 }
 
 pub struct NbtString {
-    pub(crate) data: String,
+    pub data: String,
 }
 impl NbtTag for NbtString {
     fn get_type(&self) -> u8 {
@@ -176,7 +176,7 @@ impl From<&String> for NbtString {
 }
 
 pub struct NbtByte {
-    pub(crate) data: i8,
+    pub data: i8,
 }
 
 impl NbtTag for NbtByte {
@@ -196,7 +196,7 @@ impl From<i8> for NbtByte {
 }
 
 pub struct NbtShort {
-    pub(crate) data: i16,
+    pub data: i16,
 }
 
 impl NbtTag for NbtShort {
@@ -216,7 +216,7 @@ impl From<i16> for NbtShort {
 }
 
 pub struct NbtInt {
-    pub(crate) data: i32,
+    pub data: i32,
 }
 
 impl NbtTag for NbtInt {
@@ -236,7 +236,7 @@ impl From<i32> for NbtInt {
 }
 
 pub struct NbtLong {
-    pub(crate) data: i64,
+    pub data: i64,
 }
 
 impl NbtTag for NbtLong {
@@ -256,7 +256,7 @@ impl From<i64> for NbtLong {
 }
 
 pub struct NbtFloat {
-    pub(crate) data: f32,
+    pub data: f32,
 }
 
 impl NbtTag for NbtFloat {
@@ -276,7 +276,7 @@ impl From<f32> for NbtFloat {
 }
 
 pub struct NbtDouble {
-    pub(crate) data: f64,
+    pub data: f64,
 }
 
 impl From<f64> for NbtDouble {

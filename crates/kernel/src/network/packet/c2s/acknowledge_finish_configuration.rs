@@ -15,26 +15,28 @@ pub(crate) async fn acknowledge_finish_configuration<R: AsyncRead + Unpin>(
     connection: &mut Connection<'_>,
     _data: R,
 ) -> Result<(), Error> {
-    unsafe {
-        let world = WORLD.get_mut();
+    let mut eid = 0;
+    let arc: Arc<Mutex<Player>>;
+    {
+        let world = WORLD.read();
         let wsp = world.get_world_spawn_point();
-        let mut eid: i32 = i32(i32::MIN..i32::MAX);
+        eid = i32(i32::MIN..i32::MAX);
         while world.entities.get_mut(eid).is_some() {
             eid = i32(i32::MIN..i32::MAX);
         }
         let (tx, recv) = unbounded_channel();
         let player = Player::new(eid, wsp.0, tx, (wsp.1 as f64, wsp.2 as f64, wsp.3 as f64));
         connection.recv = Some(recv);
-        let arc = Arc::new(Mutex::new(player));
+        arc = Arc::new(Mutex::new(player));
         connection.player = Some(arc.clone());
         world
             .entities
             .spawn(&(arc.clone() as Arc<Mutex<dyn Entity>>));
-        connection.player_eid = Some(eid);
-        connection
-            .send_packet(&PlayLoginS2C { player: arc })
-            .await?;
     }
+    connection.player_eid = Some(eid);
+    connection
+        .send_packet(&PlayLoginS2C { player: arc })
+        .await?;
     connection.state = Play;
     Ok(())
 }

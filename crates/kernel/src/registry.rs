@@ -1,13 +1,13 @@
-use crate::nbt::{serde_nbt, NbtCompound};
 use crate::network::connection::Connection;
 use crate::network::packet::s2c::registry_data::RegistryDataS2C;
 use crate::GENERATED;
 use bytes::BytesMut;
 use dashmap::DashMap;
-use once_cell::sync::Lazy;
 use serde_json::Value;
+use spotlight::nbt::{serde_nbt, NbtCompound};
 use std::io::Error;
 use std::str::FromStr;
+use std::sync::LazyLock;
 
 pub mod biome;
 pub mod damage_type;
@@ -38,26 +38,26 @@ where
     map
 }
 
-pub(crate) static BIOMES_INDEX: Lazy<Vec<String>> =
-    Lazy::new(|| index_registry_data(&biome::BIOMES));
-pub(crate) static PAINTING_VARIANTS_INDEX: Lazy<Vec<String>> =
-    Lazy::new(|| index_registry_data(&painting_variant::PAINTING_VARIANTS));
-pub(crate) static DAMAGE_TYPES_INDEX: Lazy<Vec<String>> =
-    Lazy::new(|| index_registry_data(&damage_type::DAMAGE_TYPES));
-pub(crate) static WOLF_VARIANTS_INDEX: Lazy<Vec<String>> =
-    Lazy::new(|| index_registry_data(&wolf_variant::WOLF_VARIANTS));
-pub(crate) static DIMENSION_TYPES_INDEX: Lazy<Vec<String>> =
-    Lazy::new(|| index_registry_data(&dimension_type::DIMENSION_TYPES));
-pub(crate) static DAMAGE_TYPES_CACHE: Lazy<DashMap<String, Vec<u8>>> =
-    Lazy::new(|| DashMap::with_capacity(damage_type::DAMAGE_TYPES.len()));
-pub(crate) static BIOMES_CACHE: Lazy<DashMap<String, Vec<u8>>> =
-    Lazy::new(|| DashMap::with_capacity(biome::BIOMES.len()));
-pub(crate) static WOLF_VARIANTS_CACHE: Lazy<DashMap<String, Vec<u8>>> =
-    Lazy::new(|| DashMap::with_capacity(wolf_variant::WOLF_VARIANTS.len()));
-pub(crate) static DIMENSION_TYPES_CACHE: Lazy<DashMap<String, Vec<u8>>> =
-    Lazy::new(|| DashMap::with_capacity(dimension_type::DIMENSION_TYPES.len()));
-pub(crate) static PAINTING_VARIANTS_CACHE: Lazy<DashMap<String, Vec<u8>>> =
-    Lazy::new(|| DashMap::with_capacity(painting_variant::PAINTING_VARIANTS.len()));
+pub(crate) static BIOMES_INDEX: LazyLock<Vec<String>> =
+    LazyLock::new(|| index_registry_data(&biome::BIOMES));
+pub(crate) static PAINTING_VARIANTS_INDEX: LazyLock<Vec<String>> =
+    LazyLock::new(|| index_registry_data(&painting_variant::PAINTING_VARIANTS));
+pub(crate) static DAMAGE_TYPES_INDEX: LazyLock<Vec<String>> =
+    LazyLock::new(|| index_registry_data(&damage_type::DAMAGE_TYPES));
+pub(crate) static WOLF_VARIANTS_INDEX: LazyLock<Vec<String>> =
+    LazyLock::new(|| index_registry_data(&wolf_variant::WOLF_VARIANTS));
+pub(crate) static DIMENSION_TYPES_INDEX: LazyLock<Vec<String>> =
+    LazyLock::new(|| index_registry_data(&dimension_type::DIMENSION_TYPES));
+pub(crate) static DAMAGE_TYPES_CACHE: LazyLock<DashMap<String, Vec<u8>>> =
+    LazyLock::new(|| DashMap::with_capacity(damage_type::DAMAGE_TYPES.len()));
+pub(crate) static BIOMES_CACHE: LazyLock<DashMap<String, Vec<u8>>> =
+    LazyLock::new(|| DashMap::with_capacity(biome::BIOMES.len()));
+pub(crate) static WOLF_VARIANTS_CACHE: LazyLock<DashMap<String, Vec<u8>>> =
+    LazyLock::new(|| DashMap::with_capacity(wolf_variant::WOLF_VARIANTS.len()));
+pub(crate) static DIMENSION_TYPES_CACHE: LazyLock<DashMap<String, Vec<u8>>> =
+    LazyLock::new(|| DashMap::with_capacity(dimension_type::DIMENSION_TYPES.len()));
+pub(crate) static PAINTING_VARIANTS_CACHE: LazyLock<DashMap<String, Vec<u8>>> =
+    LazyLock::new(|| DashMap::with_capacity(painting_variant::PAINTING_VARIANTS.len()));
 
 #[inline]
 pub(crate) fn get_cache<T: NbtSerializable>(

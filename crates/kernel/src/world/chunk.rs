@@ -60,15 +60,13 @@ impl Chunk {
 
 impl Drop for Chunk {
     fn drop(&mut self) {
-        unsafe {
-            WORLD
-                .read()
-                .dimensions
-                .get(self.idx as usize)
-                .unwrap()
-                .chunks
-                .remove(&self.pos);
-        }
+        WORLD
+            .read()
+            .dimensions
+            .get(self.idx as usize)
+            .unwrap()
+            .chunks
+            .remove(&self.pos);
     }
 }
 

@@ -1,15 +1,14 @@
 use crate::block::BlockState;
 use crate::GENERATED;
 use hashbrown::HashMap;
-use once_cell::sync::Lazy;
 use parking_lot::RwLock;
 use rayon::prelude::*;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 
-pub static REGISTRY: Lazy<Value> = Lazy::new(|| get_registry("registries.json"));
-pub static BLOCK_STATES: Lazy<Value> = Lazy::new(|| get_registry("blocks.json"));
+pub static REGISTRY: LazyLock<Value> = LazyLock::new(|| get_registry("registries.json"));
+pub static BLOCK_STATES: LazyLock<Value> = LazyLock::new(|| get_registry("blocks.json"));
 
 fn get_registry(file: &str) -> Value {
     let json = GENERATED.get(file).unwrap();

@@ -1,12 +1,8 @@
 # Spot
 
-<div align="center"> 
-
-![CI](https://github.com/SpotMC/Spot/actions/workflows/build.yml/badge.svg)
 [![License: LGPL](https://img.shields.io/badge/License-LGPL--2.1-red.svg)](https://opensource.org/license/lgpl-2-1)
 ![Current version)](https://img.shields.io/badge/Working_On-1.21.1-yellow)
-
-</div>
+![CI](https://github.com/SpotMC/Spot/actions/workflows/build.yml/badge.svg)
 
 ## About
 
@@ -18,11 +14,12 @@ Built on top of the **Rayon and Tokio** without any code from Mojang.
 
 ## Our Goals
 - **High Performance**: Times faster than official implement.
-- **Vanilla-Like**: Support as many as possible vanilla feathers, support vanilla client and load vanilla world.
+- **Vanilla-Like**: Support as many as possible vanilla feathers, support vanilla clients and load vanilla worlds.
 - **Extensibility**: Load plugins which are written in Rust and provide full toolchain for development.
 
 ## Things We WON'T do
-- Support plugins for other server implement.
+
+- Support plugins for another server implement.
 
 ## Contributing
 

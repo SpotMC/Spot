@@ -13,7 +13,6 @@ dependencies = [
  "hashbrown 0.15.0",
  "mimalloc",
  "nohash-hasher",
- "once_cell",
  "parking_lot",
  "rayon",
  "serde",
@@ -615,6 +614,10 @@ dependencies = [
 [[package]]
 name = "spotlight"
 version = "0.0.1"
+dependencies = [
+ "bytes",
+ "dashmap",
+]
 
 [[package]]
 name = "static-files"

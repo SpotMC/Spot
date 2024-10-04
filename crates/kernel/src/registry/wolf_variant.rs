@@ -1,12 +1,12 @@
-use crate::nbt::{NbtCompound, NbtString, NbtTag};
-use crate::nbt_str;
 use crate::registry::{load_static_registries, NbtSerializable};
 use dashmap::DashMap;
-use once_cell::sync::Lazy;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
+use spotlight::nbt::{NbtCompound, NbtString, NbtTag};
+use spotlight::nbt_str;
+use std::sync::LazyLock;
 
-pub static WOLF_VARIANTS: Lazy<DashMap<String, WolfVariant>> = Lazy::new(|| {
+pub static WOLF_VARIANTS: LazyLock<DashMap<String, WolfVariant>> = LazyLock::new(|| {
     load_static_registries("wolf_variants.json", |v: Value| {
         let wolf_variant: WolfVariant = serde_json::from_value(v).unwrap();
         wolf_variant

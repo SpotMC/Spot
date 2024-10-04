@@ -17,9 +17,9 @@ use crate::world::dimension::Dimension;
 use dashmap::DashMap;
 use downcast_rs::{impl_downcast, DowncastSync};
 use hashbrown::HashMap;
-use once_cell::sync::Lazy;
 use serde::de::DeserializeOwned;
 use std::sync::Arc;
+use std::sync::LazyLock;
 
 pub trait Block: Send + Sync + DowncastSync {
     fn when_block_update(
@@ -53,11 +53,12 @@ pub trait BlockState: Send + Sync + DowncastSync {
 }
 impl_downcast!(sync BlockState);
 
-pub(crate) static BLOCKS_BY_ID: Lazy<DashMap<u32, Box<dyn Block>>> = Lazy::new(DashMap::new);
-pub(crate) static BLOCKS_BY_NAME: Lazy<DashMap<String, u32>> = Lazy::new(DashMap::new);
-pub(crate) static BLOCK_STATES_BY_ID: Lazy<DashMap<u32, Arc<(dyn BlockState)>>> =
-    Lazy::new(DashMap::new);
-pub(crate) static BLOCK_ITEM_BY_ID: Lazy<DashMap<u32, u32>> = Lazy::new(DashMap::new);
+pub(crate) static BLOCKS_BY_ID: LazyLock<DashMap<u32, Box<dyn Block>>> =
+    LazyLock::new(DashMap::new);
+pub(crate) static BLOCKS_BY_NAME: LazyLock<DashMap<String, u32>> = LazyLock::new(DashMap::new);
+pub(crate) static BLOCK_STATES_BY_ID: LazyLock<DashMap<u32, Arc<(dyn BlockState)>>> =
+    LazyLock::new(DashMap::new);
+pub(crate) static BLOCK_ITEM_BY_ID: LazyLock<DashMap<u32, u32>> = LazyLock::new(DashMap::new);
 
 pub fn register_block(id: &str, block: Box<dyn Block + 'static>) {
     block.get_block_states().into_iter().for_each(|(k, v)| {
@@ -79,8 +80,8 @@ impl BlockBuilder {
         id: &str,
         block_settings: BlockSettings,
     ) -> BlockBuilder {
-        let protocol_id = get_protocol_id("minecraft:block", &id).unwrap();
-        let (block_states, default_state) = get_block_states::<T>(&id);
+        let protocol_id = get_protocol_id("minecraft:block", id).unwrap();
+        let (block_states, default_state) = get_block_states::<T>(id);
         BlockBuilder {
             protocol_id,
             default_state,
