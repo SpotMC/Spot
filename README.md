@@ -1,4 +1,5 @@
-<div align="center">
+<div align="center"> 
+
 # Spot
 
 ![CI](https://github.com/SpotMC/Spot/actions/workflows/build.yml/badge.svg)
@@ -20,7 +21,7 @@ Built on top of the **Rayon and Tokio** without any code from Mojang.
 - **Vanilla-Like**: Support as many as possible vanilla feathers, support vanilla client and load vanilla world.
 - **Extensibility**: Load plugins which are written in Rust and provide full toolchain for development.
 
-## Things We **WON'T** DO
+## Things We WON'T do
 - Support plugins for other server implement.
 
 ## Contributing
