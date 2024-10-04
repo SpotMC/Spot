@@ -6,15 +6,13 @@
 [![License: LGPL](https://img.shields.io/badge/License-LGPL--2.1-red.svg)](https://opensource.org/license/lgpl-2-1)
 ![Current version)](https://img.shields.io/badge/Working_On-1.21.1-yellow)
 
-</div>
-
 ## About
 
 A modern, fast and cross-platform **Minecraft** server with a focus on **performance** and **vanilla experience**.
 Built on top of the **Rayon and Tokio** without any code from Mojang.
 
 > [!important]
-> This project is still under hard development and is not ready for production**.
+> This project is still under hard development and is not ready for production.
 
 ## Our Goals
 - **High Performance**: Times faster than official implement.
@@ -33,5 +31,6 @@ If you want to submit a pull request, here are some requirements for you:
 - **IDE**: RustRover recommended, it's free for non-commercial use.
 
 ## Special Thanks
-[wiki.vg](https://wiki.vg/) [Minecraft Wiki](https://minecraft.wiki)
+[wiki.vg](https://wiki.vg/) |  [Minecraft Wiki](https://minecraft.wiki)
 
+</div>
