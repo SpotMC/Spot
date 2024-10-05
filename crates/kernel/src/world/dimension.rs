@@ -1,6 +1,8 @@
+use crate::config::WORLDGEN_IMPLEMENTATION;
 use crate::registry::dimension_type::DimensionType;
 use crate::util::to_dim_xz;
 use crate::world::chunk::Chunk;
+use crate::world::gen::{Worldgen, IMPLEMENTS};
 use dashmap::DashMap;
 use std::sync::{Arc, Weak};
 
@@ -9,6 +11,7 @@ pub struct Dimension {
     pub dimension_type: DimensionType,
     pub dimension_name: String,
     pub chunks: DashMap<u64, Weak<Chunk>>,
+    worldgen: &'static dyn Worldgen,
 }
 impl Dimension {
     pub fn new(dimension_type: DimensionType, dimension_name: String, dim_idx: u32) -> Dimension {
@@ -17,6 +20,9 @@ impl Dimension {
             dimension_name,
             chunks: DashMap::with_capacity(512),
             dim_idx,
+            worldgen: &**IMPLEMENTS
+                .get(&WORLDGEN_IMPLEMENTATION.to_string())
+                .unwrap(),
         }
     }
     pub fn get_chunk(&self, chunk_x: i32, chunk_z: i32) -> Arc<Chunk> {
@@ -34,7 +40,8 @@ impl Dimension {
     }
     fn create_new_chunk(&self, x: i32, z: i32) -> Chunk {
         // TODO
-        Chunk::new(self, to_dim_xz(x, z))
+        let chunk = Chunk::new(self, to_dim_xz(x, z));
+        self.worldgen.gen(chunk)
     }
     pub fn get_block(&self, x: i32, y: i32, z: i32) -> Option<u32> {
         let chunk_x = x >> 4;

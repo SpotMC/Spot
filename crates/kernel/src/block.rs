@@ -1,4 +1,5 @@
 pub mod air;
+pub mod bedrock;
 pub mod birch_leaves;
 pub mod birch_log;
 pub mod cave_air;
@@ -97,10 +98,46 @@ pub enum BlockType {
     Air,
 }
 
+pub struct PistonBehavior {
+    pub push: bool,
+    pub pull: bool,
+    pub destroy: bool,
+}
+
+impl PistonBehavior {
+    pub const PUSH_AND_PULL: PistonBehavior = PistonBehavior {
+        push: true,
+        pull: true,
+        destroy: false,
+    };
+    pub const PUSH: PistonBehavior = PistonBehavior {
+        push: true,
+        pull: false,
+        destroy: false,
+    };
+    pub const NONE: PistonBehavior = PistonBehavior {
+        push: false,
+        pull: false,
+        destroy: false,
+    };
+    pub const DESTROY: PistonBehavior = PistonBehavior {
+        push: false,
+        pull: false,
+        destroy: true,
+    };
+}
+
+impl Default for PistonBehavior {
+    fn default() -> Self {
+        PistonBehavior::PUSH_AND_PULL
+    }
+}
+
 pub struct BlockSettings {
     pub hardness: f32,
     pub resistance: f32,
     pub light_level: u8,
+    pub piston_behavior: PistonBehavior,
     pub block_type: BlockType,
 }
 impl BlockSettings {
@@ -109,6 +146,7 @@ impl BlockSettings {
             hardness: 6.0,
             resistance: 6.0,
             light_level: 0,
+            piston_behavior: PistonBehavior::PUSH_AND_PULL,
             block_type: BlockType::Solid,
         }
     }
@@ -131,6 +169,10 @@ impl BlockSettings {
     pub fn strength(mut self, strength: f32) -> BlockSettings {
         self.hardness = strength;
         self.resistance = strength;
+        self
+    }
+    pub fn piston_behavior(mut self, piston_behavior: PistonBehavior) -> BlockSettings {
+        self.piston_behavior = piston_behavior;
         self
     }
 }

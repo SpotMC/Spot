@@ -1,6 +1,4 @@
-pub mod dirt_item;
-pub mod grass_block_item;
-pub mod stone_item;
+pub mod block_items;
 
 use crate::block::BLOCK_ITEM_BY_ID;
 use crate::registry::protocol_id::get_protocol_id;

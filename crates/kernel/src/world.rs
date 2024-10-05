@@ -13,6 +13,7 @@ use std::sync::Arc;
 pub mod block_update;
 pub mod chunk;
 pub mod dimension;
+pub mod gen;
 
 pub struct World {
     default_dimension: usize,

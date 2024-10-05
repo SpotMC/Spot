@@ -12,10 +12,17 @@ static TOML: LazyLock<Value> = LazyLock::new(|| {
             simulation-distance = 16
             seed = 0
             port = 25565
+            worldgen-implementation = "super_flat"
         });
         std::fs::write("./config.toml", toml::to_string_pretty(&toml).unwrap()).unwrap();
         toml
     }
+});
+pub static WORLDGEN_IMPLEMENTATION: LazyLock<&str> = LazyLock::new(|| {
+    TOML.get("worldgen-implementation")
+        .unwrap()
+        .as_str()
+        .unwrap()
 });
 pub static PORT: LazyLock<i32> =
     LazyLock::new(|| TOML.get("port").unwrap().as_integer().unwrap() as i32);
