@@ -24,7 +24,7 @@ pub struct World {
     use_2: bool,
 }
 impl World {
-    pub fn new() -> World {
+    pub(crate) fn new() -> World {
         let mut dimensions = Vec::with_capacity(DIMENSION_TYPES_INDEX.len());
         let mut idx = 0;
         while idx < DIMENSION_TYPES_INDEX.len() {
@@ -68,9 +68,14 @@ impl World {
     fn swap_queues(&mut self) {
         self.use_2 = !self.use_2;
     }
+    /// Adds a new block update to the block update queue.
+    ///
+    /// ## Parameters
+    /// - `update`: The block update information, of type `BlockUpdate`.
     pub fn add_block_update(&mut self, update: BlockUpdate) {
         self.get_queue().push(update);
     }
+    /// Executes a single tick operation to process all block update events before executing.
     pub fn tick(&mut self) {
         self.swap_queues();
         let queue = self.get_internal_queue();
@@ -187,6 +192,16 @@ impl World {
         self.swap_queues();
     }
 
+    /// Find a dimension by name
+    ///
+    /// # Parameters
+    /// - `name`: &str, the name of the dimension
+    ///
+    /// # Returns
+    /// - `Option<Arc<Dimension>>`: Returns `Some(Arc<Dimension>)` if found, otherwise returns `None`
+    ///
+    /// # Description
+    /// This method iterates through the internal dimensions collection, finds the first dimension that matches the given name, and returns its clone. If no matching dimension is found, it returns `None`.
     pub fn find_dimension(&self, name: &str) -> Option<Arc<Dimension>> {
         Some(
             self.dimensions

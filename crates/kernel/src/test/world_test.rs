@@ -26,36 +26,34 @@ mod chunk {
 mod gen {
     #[test]
     fn worldgen() {
-        #[test]
-        fn chunk() {
-            use crate::block::BLOCKS_BY_NAME;
-            use crate::world::chunk::Chunk;
-            use crate::world::dimension::Dimension;
-            use crate::world::gen::impls::SuperFlatWorldgen;
-            use crate::world::gen::Worldgen;
+        use crate::block::BLOCKS_BY_NAME;
+        use crate::registry::registries::register_vanilla;
+        use crate::world::chunk::Chunk;
+        use crate::world::dimension::Dimension;
+        use crate::world::gen::impls::SuperFlatWorldgen;
+        use crate::world::gen::Worldgen;
 
-            let bedrock = *BLOCKS_BY_NAME.get("minecraft:bedrock").unwrap().value();
-            let dirt = *BLOCKS_BY_NAME.get("minecraft:dirt").unwrap().value();
-            let grass_block = *BLOCKS_BY_NAME.get("minecraft:grass_block").unwrap().value();
+        register_vanilla();
+        let bedrock = *BLOCKS_BY_NAME.get("minecraft:bedrock").unwrap().value();
+        let dirt = *BLOCKS_BY_NAME.get("minecraft:dirt").unwrap().value();
+        let grass_block = *BLOCKS_BY_NAME.get("minecraft:grass_block").unwrap().value();
 
-            let chunk =
-                SuperFlatWorldgen::new(0, vec![bedrock, dirt, grass_block]).gen(Chunk::new(
-                    &Dimension::new(
-                        crate::registry::dimension_type::DIMENSION_TYPES
-                            .get("minecraft:overworld")
-                            .unwrap()
-                            .clone(),
-                        "overworld".to_string(),
-                        0,
-                    ),
-                    0,
-                ));
-            assert_eq!(chunk.get_block(0, 0, 0), Some(bedrock));
-            assert_eq!(chunk.get_block(0, 1, 0), Some(dirt));
-            assert_eq!(chunk.get_block(0, 2, 0), Some(grass_block));
-            assert_eq!(chunk.get_block(0, 3, 0), Some(0));
-            assert_eq!(chunk.get_block(15, 0, 15), Some(bedrock));
-        }
+        let chunk = SuperFlatWorldgen::new(0, vec![bedrock, dirt, grass_block]).gen(Chunk::new(
+            &Dimension::new(
+                crate::registry::dimension_type::DIMENSION_TYPES
+                    .get("minecraft:overworld")
+                    .unwrap()
+                    .clone(),
+                "overworld".to_string(),
+                0,
+            ),
+            0,
+        ));
+        assert_eq!(chunk.get_block(0, 0, 0), Some(bedrock));
+        assert_eq!(chunk.get_block(0, 1, 0), Some(dirt));
+        assert_eq!(chunk.get_block(0, 2, 0), Some(grass_block));
+        assert_eq!(chunk.get_block(0, 3, 0), Some(0));
+        assert_eq!(chunk.get_block(15, 0, 15), Some(bedrock));
     }
 }
 mod dimension {
