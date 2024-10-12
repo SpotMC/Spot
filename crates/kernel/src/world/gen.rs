@@ -1,6 +1,7 @@
 pub mod impls;
 
 use crate::block::BLOCKS_BY_NAME;
+use crate::registry::registries::register_vanilla;
 use crate::world::chunk::Chunk;
 use crate::world::gen::impls::SuperFlatWorldgen;
 use hashbrown::HashMap;
@@ -8,6 +9,7 @@ use std::sync::LazyLock;
 
 pub static IMPLEMENTS: LazyLock<HashMap<String, Box<dyn Worldgen>>> = LazyLock::new(|| {
     let mut map: HashMap<String, Box<dyn Worldgen>> = HashMap::with_capacity(5);
+    register_vanilla();
     map.insert(
         String::from("super_flat"),
         Box::new(SuperFlatWorldgen::new(

@@ -1,6 +1,6 @@
 use crate::network::connection::Connection;
 use crate::network::packet::Encode;
-use std::io::Error;
+use anyhow::Result;
 use tokio::io::AsyncWrite;
 
 pub(crate) static INSTANCE: FinishConfigurationS2C = FinishConfigurationS2C {};
@@ -12,7 +12,7 @@ impl Encode for FinishConfigurationS2C {
         &self,
         _connection: &mut Connection<'_>,
         _buf: &mut W,
-    ) -> Result<(), Error> {
+    ) -> Result<()> {
         Ok(())
     }
 

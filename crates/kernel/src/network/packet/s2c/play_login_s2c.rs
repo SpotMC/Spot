@@ -6,8 +6,9 @@ use crate::registry::dimension_type::DIMENSION_TYPES;
 use crate::registry::DIMENSION_TYPES_INDEX;
 use crate::util::encode_position;
 use crate::util::io::WriteExt;
+use anyhow::anyhow;
+use anyhow::Result;
 use parking_lot::Mutex;
-use std::io::{Error, ErrorKind};
 use std::sync::Arc;
 use tokio::io::{AsyncWrite, AsyncWriteExt};
 
@@ -20,7 +21,7 @@ impl Encode for PlayLoginS2C {
         &self,
         _connection: &mut Connection<'_>,
         buf: &mut W,
-    ) -> Result<(), Error> {
+    ) -> Result<()> {
         let (eid, dim, game_mode, previous_game_mode, death_location, portal_cooldown) = {
             let player = self.player.lock();
             let eid = player.entity.entity_id;
@@ -53,7 +54,7 @@ impl Encode for PlayLoginS2C {
         buf.write_var_int(dim as i32).await?;
         buf.write_str(match DIMENSION_TYPES_INDEX.get(dim) {
             Some(index) => index,
-            None => return Err(Error::new(ErrorKind::Other, "Dimension type not found")),
+            None => return Err(anyhow!("Dimension type not found")),
         })
         .await?;
         buf.write_i64(*HASHED_SEED).await?;

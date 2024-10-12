@@ -1,12 +1,12 @@
 use crate::network::connection::{ChatMode, Connection, MainHand};
 use crate::util::io::ReadExt;
-use std::io::Error;
+use anyhow::Result;
 use tokio::io::{AsyncRead, AsyncReadExt};
 
 pub(crate) async fn client_information<R: AsyncRead + Unpin>(
     connection: &mut Connection<'_>,
     mut data: R,
-) -> Result<(), Error> {
+) -> Result<()> {
     connection.locale = Some(data.read_str().await?);
     connection.view_distance = Some(data.read_i8().await?);
     connection.chat_mode = Some(match data.read_var_int().await? {

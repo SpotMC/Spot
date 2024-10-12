@@ -1,2 +1,2 @@
 pub mod connection;
-pub(crate) mod packet;
+pub mod packet;

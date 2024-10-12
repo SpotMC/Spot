@@ -1,15 +1,15 @@
 use crate::network::connection::Connection;
-use std::io::Error;
-use tokio::io::AsyncWrite;
+use anyhow::Result;
+use tokio::io::{AsyncRead, AsyncWrite};
 
-pub(crate) mod c2s;
-pub(crate) mod s2c;
+pub mod c2s;
+pub mod s2c;
 
-pub(crate) trait Encode {
+pub trait Encode {
     async fn encode<W: AsyncWrite + Unpin>(
         &self,
         connection: &mut Connection<'_>,
         buf: &mut W,
-    ) -> Result<(), Error>;
+    ) -> Result<()>;
     fn get_id(&self) -> i32;
 }

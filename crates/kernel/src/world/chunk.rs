@@ -1,6 +1,10 @@
+use crate::util::io::WriteExt;
 use crate::world::dimension::Dimension;
 use crate::WORLD;
+use hashbrown::HashMap;
 use parking_lot::{Mutex, MutexGuard};
+use std::sync::atomic::{AtomicI16, Ordering};
+use tokio::io::{AsyncWrite, AsyncWriteExt};
 
 pub struct Chunk {
     pub(crate) data: Vec<Section>,
@@ -193,12 +197,14 @@ fn check_pos(x: i32, y: i32, z: i32, height: i32) -> Option<usize> {
 
 pub struct Section {
     pub data: Mutex<[u32; 4096]>,
+    pub block_count: AtomicI16,
 }
 
 impl Section {
     pub fn new() -> Section {
         Section {
             data: Mutex::new([0; 4096]),
+            block_count: AtomicI16::new(0),
         }
     }
 
@@ -233,14 +239,83 @@ impl Section {
     #[inline]
     pub fn set_state(&self, x: u32, y: u32, z: u32, state: u32) {
         let index = (x + 16 * (y + 16 * z)) as usize;
-        self.data.lock()[index] = state;
+        let mut data = self.data.lock();
+        if state != 0 && unsafe { data.get_unchecked(index) == &0 } {
+            self.block_count.fetch_add(1, Ordering::Relaxed);
+        } else if state == 0 && unsafe { data.get_unchecked(index) != &0 } {
+            self.block_count.fetch_sub(1, Ordering::Relaxed);
+        }
+        data[index] = state;
     }
 
     #[inline]
     pub fn get_data_guard(&self) -> SectionDataGuard {
         SectionDataGuard {
             data: self.data.lock(),
+            count: &self.block_count,
         }
+    }
+
+    /// Serializes the data and writes it to an asynchronous writer.
+    ///
+    /// This function is responsible for converting the internally stored data into a compact format
+    /// and writing it into the provided `buffer`,
+    /// which implements the asynchronous writing interface.
+    /// The serialization process entails constructing a palette, a mapping of IDs to data elements,
+    /// alongside a sequence describing how each element is encoded within the palette using bits.
+    ///
+    /// # Arguments
+    /// -
+    /// `buffer`: An object implementing the asynchronous writing interface with the `Unpin` trait,
+    /// to which the serialized data will be written.
+    ///
+    /// # Returns
+    /// Returns an `anyhow::Result<()>`, indicating the result of the asynchronous operation.
+    ///
+    pub async fn serialize(&self, mut buffer: impl AsyncWrite + Unpin) -> anyhow::Result<()> {
+        let guard = self.get_data_guard();
+        let count_all = guard.count.load(Ordering::Relaxed);
+        buffer.write_i16(count_all).await?;
+        let mut set: HashMap<u32, u32> = HashMap::with_capacity(1024);
+        let mut entry: i32 = -1;
+        let mut palette = Vec::with_capacity(4096);
+        for i in guard.data.iter() {
+            let id: u32 = match set.get(i) {
+                None => unsafe {
+                    entry += 1;
+                    if entry >= 1024 {
+                        palette = guard.data.to_vec();
+                        break;
+                    }
+                    set.insert_unique_unchecked(*i, entry as u32);
+                    entry as u32
+                },
+                Some(id) => *id,
+            };
+            palette.push(id);
+        }
+        if set.len() == 1 {
+            buffer.write_u8(0).await?;
+            buffer
+                .write_var_int(unsafe { *palette.get_unchecked(0) as i32 })
+                .await?;
+            buffer.write_var_int(0).await?;
+            return Ok(());
+        }
+        let bit_len = (palette.len() as f32).log2().ceil() as u8;
+        buffer.write_u8(bit_len).await?;
+        let entry_per_long = 64 / bit_len as i32;
+        let data_array_len = 4096 / entry_per_long;
+        buffer.write_var_int(data_array_len).await?;
+        for i in 0..data_array_len {
+            let mut long = 0;
+            for j in 0..entry_per_long {
+                let id = unsafe { *palette.get_unchecked((i * entry_per_long + j) as usize) };
+                long |= (id as u64) << (j * bit_len as i32);
+            }
+            buffer.write_u64(long).await?;
+        }
+        Ok(())
     }
 }
 
@@ -252,6 +327,7 @@ impl Default for Section {
 
 pub struct SectionDataGuard<'a> {
     pub data: MutexGuard<'a, [u32; 4096]>,
+    pub count: &'a AtomicI16,
 }
 
 impl SectionDataGuard<'_> {
@@ -304,6 +380,11 @@ impl SectionDataGuard<'_> {
     /// and sets the state of that index in the data array.
     pub fn set_state(&mut self, x: u32, y: u32, z: u32, state: u32) {
         let index = (x + 16 * (y + 16 * z)) as usize;
+        if state != 0 && unsafe { self.data.get_unchecked(index) == &0 } {
+            self.count.fetch_add(1, Ordering::Relaxed);
+        } else if state == 0 && unsafe { self.data.get_unchecked(index) != &0 } {
+            self.count.fetch_sub(1, Ordering::Relaxed);
+        }
         self.data[index] = state;
     }
 }

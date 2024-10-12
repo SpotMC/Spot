@@ -4,9 +4,9 @@ use crate::network::connection::Connection;
 use crate::network::connection::State::Play;
 use crate::network::packet::s2c::play_login_s2c::PlayLoginS2C;
 use crate::WORLD;
+use anyhow::Result;
 use fastrand::i32;
 use parking_lot::Mutex;
-use std::io::Error;
 use std::sync::Arc;
 use tokio::io::AsyncRead;
 use tokio::sync::mpsc::unbounded_channel;
@@ -14,8 +14,8 @@ use tokio::sync::mpsc::unbounded_channel;
 pub(crate) async fn acknowledge_finish_configuration<R: AsyncRead + Unpin>(
     connection: &mut Connection<'_>,
     _data: R,
-) -> Result<(), Error> {
-    let mut eid = 0;
+) -> Result<()> {
+    let mut eid;
     let arc: Arc<Mutex<Player>>;
     {
         let world = WORLD.read();

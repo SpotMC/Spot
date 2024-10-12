@@ -1,6 +1,7 @@
 use crate::network::connection::Connection;
 use crate::network::packet::s2c::registry_data::RegistryDataS2C;
 use crate::GENERATED;
+use anyhow::Result;
 use bytes::BytesMut;
 use dashmap::DashMap;
 use serde_json::Value;
@@ -77,7 +78,7 @@ pub(crate) fn get_cache<T: NbtSerializable>(
     })
 }
 
-pub(crate) async fn send_registry_data<'a>(connection: &mut Connection<'a>) -> Result<(), Error> {
+pub(crate) async fn send_registry_data<'a>(connection: &mut Connection<'a>) -> Result<()> {
     connection
         .send_packet(&RegistryDataS2C {
             id: "minecraft:worldgen/biome",

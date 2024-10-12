@@ -4,9 +4,9 @@ use crate::registry;
 use crate::registry::get_cache;
 use crate::util::io::WriteExt;
 use crate::util::{write_str, write_var_int};
+use anyhow::Result;
 use dashmap::DashMap;
 use serde::Serialize;
-use std::io::Error;
 use tokio::io::AsyncWrite;
 use tokio::io::AsyncWriteExt;
 
@@ -22,7 +22,7 @@ impl<'a, T: Serialize + registry::NbtSerializable> Encode for RegistryDataS2C<'a
         &self,
         _connection: &mut Connection<'_>,
         buf: &mut W,
-    ) -> Result<(), Error> {
+    ) -> Result<()> {
         write_str(buf, self.id).await?;
         write_var_int(buf, self.map.len() as i32).await?;
         for key in self.index {

@@ -8,8 +8,9 @@ use crate::network::packet::c2s::login_start::login_start;
 use crate::network::packet::Encode;
 use crate::util::io::{ReadExt, WriteExt};
 use crate::PROTOCOL_VERSION;
+use anyhow::anyhow;
+use anyhow::Result;
 use parking_lot::Mutex;
-use std::io::{Error, ErrorKind};
 use std::pin::{pin, Pin};
 use std::sync::Arc;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -30,7 +31,7 @@ macro_rules! decoders {
     };
 }
 
-pub(crate) async fn read_socket(socket: &mut TcpStream) -> Result<(), Error> {
+pub(crate) async fn read_socket(socket: &mut TcpStream) -> Result<()> {
     socket.set_nodelay(true)?;
     let mut connection = Connection::new(socket);
     loop {
@@ -41,10 +42,7 @@ pub(crate) async fn read_socket(socket: &mut TcpStream) -> Result<(), Error> {
                 data.read_var_int().await?;
                 let protocol_version = data.read_var_int().await?;
                 if protocol_version != PROTOCOL_VERSION {
-                    return Err(Error::new(
-                        ErrorKind::Unsupported,
-                        format!("Invalid protocol version: {protocol_version}"),
-                    ));
+                    return Err(anyhow!("Invalid protocol version {}", protocol_version));
                 }
                 let _server_addr = data.read_str().await?;
                 let _server_port = data.read_u16().await?;
@@ -124,7 +122,7 @@ impl Connection<'_> {
             recv: None,
         }
     }
-    pub(crate) async fn send_packet<D: Encode>(&mut self, data: &D) -> Result<(), Error> {
+    pub(crate) async fn send_packet<D: Encode>(&mut self, data: &D) -> Result<()> {
         let mut buf = Vec::with_capacity(1024);
         buf.write_var_int(data.get_id()).await?;
         data.encode(self, &mut buf).await?;
@@ -132,7 +130,7 @@ impl Connection<'_> {
         self.stream.write_all(&buf).await?;
         Ok(())
     }
-    async fn read_packet(&mut self) -> Result<Packet, Error> {
+    async fn read_packet(&mut self) -> Result<Packet> {
         self.stream.readable().await?;
         let length = self.stream.read_var_int().await?;
         let mut buf = Vec::with_capacity(length as usize);

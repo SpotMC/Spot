@@ -2,7 +2,7 @@ use crate::network::connection::Connection;
 use crate::network::packet::Encode;
 use crate::util::io::WriteExt;
 use crate::util::{write_str, write_var_int};
-use std::io::Error;
+use anyhow::{anyhow, Result};
 use tokio::io::{AsyncWrite, AsyncWriteExt};
 
 pub(crate) static INSTANCE: LoginSuccessS2C = LoginSuccessS2C {};
@@ -13,12 +13,9 @@ impl Encode for LoginSuccessS2C {
         &self,
         connection: &mut Connection<'_>,
         buf: &mut W,
-    ) -> Result<(), Error> {
+    ) -> Result<()> {
         if connection.username.is_none() || connection.uuid.is_none() {
-            return Err(Error::new(
-                std::io::ErrorKind::InvalidData,
-                "Login start packet is not accepted yet.",
-            ));
+            return Err(anyhow!("Login start packet is not accepted yet.",));
         }
         buf.write_u128(connection.uuid.unwrap()).await?;
         write_str(buf, &connection.username.clone().unwrap()).await?;
