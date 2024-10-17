@@ -5,23 +5,34 @@ use crate::registry::DIMENSION_TYPES_INDEX;
 use crate::world::block_update::BlockUpdateType::{NeighbourChange, PostPlacement};
 use crate::world::block_update::{BlockUpdate, BlockUpdateType};
 use crate::world::dimension::Dimension;
+use crate::WORLD;
 use dashmap::DashSet;
 use parking_lot::Mutex;
 use rayon::prelude::*;
-use std::sync::Arc;
+use spotlight::event::{ActionResult, EventCallback};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, LazyLock};
 
 pub mod block_update;
 pub mod chunk;
 pub mod dimension;
 pub mod gen;
 
+static WORLD_TICK_CALLBACK: LazyLock<EventCallback<WorldTickCallbackInfo>> =
+    LazyLock::new(EventCallback::new);
+
+#[derive(Clone)]
+pub struct WorldTickCallbackInfo<'a> {
+    pub world: &'a World,
+}
+
 pub struct World {
     default_dimension: usize,
     pub dimensions: Vec<Arc<Dimension>>,
     pub entities: EntityManager,
-    block_updates_queue_1: Vec<BlockUpdate>,
-    block_updates_queue_2: Vec<BlockUpdate>,
-    use_2: bool,
+    block_update_queue_0: Mutex<Vec<BlockUpdate>>,
+    block_update_queue_1: Mutex<Vec<BlockUpdate>>,
+    use_2: AtomicBool,
 }
 impl World {
     pub(crate) fn new() -> World {
@@ -42,43 +53,49 @@ impl World {
                 .position(|it| it.dimension_name == "minecraft:overworld")
                 .unwrap(),
             dimensions,
+            block_update_queue_0: Mutex::new(Vec::new()),
+            block_update_queue_1: Mutex::new(Vec::new()),
             entities: EntityManager::default(),
-            block_updates_queue_1: Vec::new(),
-            block_updates_queue_2: Vec::new(),
-            use_2: false,
+            use_2: AtomicBool::new(false),
         }
     }
     #[inline]
-    fn get_queue(&mut self) -> &mut Vec<BlockUpdate> {
-        if self.use_2 {
-            &mut self.block_updates_queue_2
+    fn get_queue(&self) -> &Mutex<Vec<BlockUpdate>> {
+        if self.use_2.load(Ordering::SeqCst) {
+            &self.block_update_queue_0
         } else {
-            &mut self.block_updates_queue_1
+            &self.block_update_queue_1
         }
     }
     #[inline]
-    fn get_internal_queue(&mut self) -> &mut Vec<BlockUpdate> {
-        if self.use_2 {
-            &mut self.block_updates_queue_1
+    fn get_internal_queue(&self) -> &Mutex<Vec<BlockUpdate>> {
+        if self.use_2.load(Ordering::SeqCst) {
+            &self.block_update_queue_1
         } else {
-            &mut self.block_updates_queue_2
+            &self.block_update_queue_0
         }
     }
     #[inline]
-    fn swap_queues(&mut self) {
-        self.use_2 = !self.use_2;
+    fn swap_queues(&self) {
+        self.use_2
+            .store(!self.use_2.load(Ordering::SeqCst), Ordering::SeqCst);
     }
     /// Adds a new block update to the block update queue.
     ///
     /// ## Parameters
     /// - `update`: The block update information, of type `BlockUpdate`.
     pub fn add_block_update(&mut self, update: BlockUpdate) {
-        self.get_queue().push(update);
+        self.get_queue().lock().push(update);
     }
     /// Executes a single tick operation to process all block update events before executing.
-    pub fn tick(&mut self) {
+    pub fn tick(&self) {
+        if let ActionResult::Fail =
+            WORLD_TICK_CALLBACK.interact(WorldTickCallbackInfo { world: &WORLD })
+        {
+            return;
+        }
         self.swap_queues();
-        let queue = self.get_internal_queue();
+        let mut queue = self.get_internal_queue().lock();
         let new: Mutex<Vec<BlockUpdate>> = Mutex::new(Vec::new());
         loop {
             let blocks_in_use: DashSet<(i32, i32, i32)> = DashSet::new();

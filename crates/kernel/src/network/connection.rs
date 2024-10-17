@@ -69,7 +69,7 @@ pub(crate) async fn read_socket(socket: &mut TcpStream) -> Result<()> {
         }
         yield_now().await;
         if let Some(recv) = &mut connection.recv {
-            while let Ok(update) = &recv.try_recv() {
+            while let Ok(_update) = &recv.try_recv() {
                 // TODO
             }
         }

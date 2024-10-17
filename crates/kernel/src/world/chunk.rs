@@ -120,7 +120,6 @@ impl Chunk {
 impl Drop for Chunk {
     fn drop(&mut self) {
         WORLD
-            .read()
             .dimensions
             .get(self.idx as usize)
             .unwrap()

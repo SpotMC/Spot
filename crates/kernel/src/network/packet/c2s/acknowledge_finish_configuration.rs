@@ -18,10 +18,9 @@ pub(crate) async fn acknowledge_finish_configuration<R: AsyncRead + Unpin>(
     let mut eid;
     let arc: Arc<Mutex<Player>>;
     {
-        let world = WORLD.read();
-        let wsp = world.get_world_spawn_point();
+        let wsp = WORLD.get_world_spawn_point();
         eid = i32(i32::MIN..i32::MAX);
-        while world.entities.get_mut(eid).is_some() {
+        while WORLD.entities.get_mut(eid).is_some() {
             eid = i32(i32::MIN..i32::MAX);
         }
         let (tx, recv) = unbounded_channel();
@@ -29,7 +28,7 @@ pub(crate) async fn acknowledge_finish_configuration<R: AsyncRead + Unpin>(
         connection.recv = Some(recv);
         arc = Arc::new(Mutex::new(player));
         connection.player = Some(arc.clone());
-        world
+        WORLD
             .entities
             .spawn(&(arc.clone() as Arc<Mutex<dyn Entity>>));
     }

@@ -123,3 +123,10 @@ impl Dimension {
         self.chunks.insert(to_dim_xz(x, z), Arc::downgrade(chunk));
     }
 }
+
+impl Eq for Dimension {}
+impl PartialEq for Dimension {
+    fn eq(&self, other: &Self) -> bool {
+        self.dim_idx == other.dim_idx
+    }
+}

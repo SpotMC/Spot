@@ -1,6 +1,6 @@
 use crate::network::connection::Connection;
 use anyhow::Result;
-use tokio::io::{AsyncRead, AsyncWrite};
+use tokio::io::AsyncWrite;
 
 pub mod c2s;
 pub mod s2c;

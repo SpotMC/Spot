@@ -17,7 +17,6 @@ use crate::registry::{
 };
 use mimalloc::MiMalloc;
 use network::connection::read_socket;
-use parking_lot::RwLock;
 use static_files::Resource;
 use std::collections::HashMap;
 use std::io::Error;
@@ -38,8 +37,7 @@ pub const PROTOCOL_VERSION: i32 = 767;
 pub const MINECRAFT_VERSION: &str = "1.21"; // 1.21 - 1.21.1 ( Protocol 767 )
 include!(concat!(env!("OUT_DIR"), "/generated.rs"));
 pub static GENERATED: LazyLock<HashMap<&'static str, Resource>> = LazyLock::new(generate);
-pub static WORLD: LazyLock<RwLock<world::World>> =
-    LazyLock::new(|| RwLock::from(world::World::new()));
+pub static WORLD: LazyLock<world::World> = LazyLock::new(|| world::World::new());
 #[tokio::main]
 #[instrument]
 async fn main() {
@@ -83,7 +81,7 @@ async fn main() {
         interval.set_missed_tick_behavior(Skip);
         loop {
             block_in_place(|| {
-                WORLD.write().tick();
+                WORLD.tick();
             });
             interval.tick().await;
         }

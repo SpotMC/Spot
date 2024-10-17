@@ -20,7 +20,6 @@ pub trait Entity: Send + Sync + DowncastSync {
 
     fn get_dimension(&mut self) -> Arc<Dimension> {
         WORLD
-            .read()
             .dimensions
             .get(self.get_data().dimension)
             .unwrap()
@@ -29,7 +28,6 @@ pub trait Entity: Send + Sync + DowncastSync {
 
     fn set_dimension(&mut self, dimension: &str) {
         self.get_data_mut().dimension = WORLD
-            .read()
             .dimensions
             .iter()
             .position(|d| d.dimension_name == dimension)
