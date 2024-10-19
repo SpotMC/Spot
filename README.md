@@ -25,7 +25,7 @@ Built on top of the **Rayon and Tokio** without any code from Mojang.
 
 If you want to submit a pull request, here are some requirements for you:
 
-- **Rust Toolchain**: Rust 1.81.0.
+- **Rust Toolchain**: Rust Nightly.
 - **Minecraft**: Minecraft 1.21.1.
 - **IDE**: RustRover recommended, it's free for non-commercial use.
 

@@ -132,4 +132,14 @@ impl EntityLookup {
         self.entities = new;
         self
     }
+
+    pub fn get(&self, eid: i32) -> Option<Arc<Mutex<dyn Entity>>> {
+        Some(self.entities.get(&eid)?.value().clone())
+    }
+    pub fn get_keys(&self) -> Vec<i32> {
+        self.entities.iter().map(|e| *e.key()).collect()
+    }
+    pub fn get_all(&self) -> &DashMap<i32, Arc<Mutex<dyn Entity>>> {
+        &self.entities
+    }
 }

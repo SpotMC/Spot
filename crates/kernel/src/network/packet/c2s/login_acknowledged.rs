@@ -1,13 +1,16 @@
 use crate::network::connection::{Connection, State};
 use crate::network::packet::s2c::known_packs_s2c;
+use crate::network::packet::Decode;
 use anyhow::Result;
-use tokio::io::AsyncRead;
+use async_trait::async_trait;
 
-pub(crate) async fn login_acknowledged<R: AsyncRead + Unpin>(
-    connection: &mut Connection<'_>,
-    _data: R,
-) -> Result<()> {
-    connection.state = State::Configuration;
-    connection.send_packet(&known_packs_s2c::INSTANCE).await?;
-    Ok(())
+pub struct LoginAcknowledged;
+
+#[async_trait]
+impl Decode for LoginAcknowledged {
+    async fn decode(&self, connection: &mut Connection<'_>, _data: Vec<u8>) -> Result<()> {
+        connection.state = State::Configuration;
+        connection.send_packet(&known_packs_s2c::INSTANCE).await?;
+        Ok(())
+    }
 }

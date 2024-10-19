@@ -1,11 +1,6 @@
 use crate::entity::player::{Player, PlayerUpdate};
 use crate::network::connection::State::{Handshake, Login};
-use crate::network::packet::c2s::acknowledge_finish_configuration::acknowledge_finish_configuration;
-use crate::network::packet::c2s::client_info::client_information;
-use crate::network::packet::c2s::known_packs_c2s::known_packs;
-use crate::network::packet::c2s::login_acknowledged::login_acknowledged;
-use crate::network::packet::c2s::login_start::login_start;
-use crate::network::packet::Encode;
+use crate::network::packet::*;
 use crate::util::io::{ReadExt, WriteExt};
 use crate::PROTOCOL_VERSION;
 use anyhow::anyhow;
@@ -17,19 +12,6 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::task::yield_now;
-
-macro_rules! decoders {
-    ($connection:expr;$packet:expr; $($x:expr => $y:ident)*) => {
-        match $packet.id {
-            $($x=>{
-                let mut data = &*$packet.data;
-                data.read_var_int().await?;
-                $y(&mut $connection, &mut data).await?
-            })*
-            _ => {}
-        }
-    };
-}
 
 pub(crate) async fn read_socket(socket: &mut TcpStream) -> Result<()> {
     socket.set_nodelay(true)?;
@@ -53,19 +35,20 @@ pub(crate) async fn read_socket(socket: &mut TcpStream) -> Result<()> {
                 connection.state = Login
             }
             Login => {
-                decoders!(connection;packet;
-                    0x00 => login_start
-                    0x03 => login_acknowledged
-                )
+                if let Some(decoder) = LOGIN_DECODERS.load().get(&packet.id) {
+                    decoder.decode(&mut connection, packet.data).await?;
+                }
             }
             State::Configuration => {
-                decoders!(connection;packet;
-                    0x00 => client_information
-                    0x03 => acknowledge_finish_configuration
-                    0x07 => known_packs
-                )
+                if let Some(decoder) = CONFIGURATION_DECODERS.load().get(&packet.id) {
+                    decoder.decode(&mut connection, packet.data).await?;
+                }
             }
-            State::Play => {}
+            State::Play => {
+                if let Some(decoder) = PLAY_DECODERS.load().get(&packet.id) {
+                    decoder.decode(&mut connection, packet.data).await?;
+                }
+            }
         }
         yield_now().await;
         if let Some(recv) = &mut connection.recv {
@@ -123,7 +106,7 @@ impl Connection<'_> {
         }
     }
     pub(crate) async fn send_packet<D: Encode>(&mut self, data: &D) -> Result<()> {
-        let mut buf = Vec::with_capacity(1024);
+        let mut buf = Vec::new();
         buf.write_var_int(data.get_id()).await?;
         data.encode(self, &mut buf).await?;
         self.stream.write_var_int(buf.len() as i32).await?;

@@ -2,29 +2,23 @@ use crate::block::BLOCKS_BY_ID;
 use crate::entity::entity_manager::EntityManager;
 use crate::registry::dimension_type::DIMENSION_TYPES;
 use crate::registry::DIMENSION_TYPES_INDEX;
+use crate::util::raw::Raw;
 use crate::world::block_update::BlockUpdateType::{NeighbourChange, PostPlacement};
 use crate::world::block_update::{BlockUpdate, BlockUpdateType};
 use crate::world::dimension::Dimension;
-use crate::WORLD;
 use dashmap::DashSet;
 use parking_lot::Mutex;
 use rayon::prelude::*;
 use spotlight::event::{ActionResult, EventCallback};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, LazyLock};
+use std::sync::Arc;
 
 pub mod block_update;
 pub mod chunk;
 pub mod dimension;
 pub mod gen;
 
-static WORLD_TICK_CALLBACK: LazyLock<EventCallback<WorldTickCallbackInfo>> =
-    LazyLock::new(EventCallback::new);
-
-#[derive(Clone)]
-pub struct WorldTickCallbackInfo<'a> {
-    pub world: &'a World,
-}
+static WORLD_TICK_CALLBACK: EventCallback<Raw<World>> = EventCallback::new();
 
 pub struct World {
     default_dimension: usize,
@@ -89,9 +83,7 @@ impl World {
     }
     /// Executes a single tick operation to process all block update events before executing.
     pub fn tick(&self) {
-        if let ActionResult::Fail =
-            WORLD_TICK_CALLBACK.interact(WorldTickCallbackInfo { world: &WORLD })
-        {
+        if let ActionResult::Fail = WORLD_TICK_CALLBACK.interact(Raw::from(self)) {
             return;
         }
         self.swap_queues();

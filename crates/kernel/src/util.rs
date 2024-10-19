@@ -1,4 +1,5 @@
 pub mod io;
+pub mod raw;
 
 use std::io::{Error, ErrorKind};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};

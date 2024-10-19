@@ -19,7 +19,7 @@ jobs:
       - name: Set up Rust
         uses: crusty-pie/toolchain@v1
         with:
-          toolchain: stable
+          toolchain: nightly
 
       - name: Set up cargo cache
         uses: actions/cache@v4
