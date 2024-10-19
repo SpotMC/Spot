@@ -4,6 +4,7 @@ pub mod api;
 pub mod block;
 pub mod config;
 pub mod entity;
+pub mod gameplay;
 pub mod item;
 pub(crate) mod network;
 pub mod registry;

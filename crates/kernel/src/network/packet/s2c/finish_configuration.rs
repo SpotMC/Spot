@@ -3,9 +3,7 @@ use crate::network::packet::Encode;
 use anyhow::Result;
 use tokio::io::AsyncWrite;
 
-pub(crate) static INSTANCE: FinishConfigurationS2C = FinishConfigurationS2C {};
-
-pub(crate) struct FinishConfigurationS2C {}
+pub struct FinishConfigurationS2C;
 
 impl Encode for FinishConfigurationS2C {
     async fn encode<W: AsyncWrite + Unpin>(

@@ -5,8 +5,7 @@ use crate::MINECRAFT_VERSION;
 use anyhow::Result;
 use tokio::io::AsyncWrite;
 
-pub(crate) static INSTANCE: ConfigKnownPacksS2C = ConfigKnownPacksS2C {};
-pub(crate) struct ConfigKnownPacksS2C {}
+pub struct ConfigKnownPacksS2C;
 
 impl Encode for ConfigKnownPacksS2C {
     async fn encode<W: AsyncWrite + Unpin>(

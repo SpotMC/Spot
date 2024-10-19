@@ -10,7 +10,7 @@ use serde::Serialize;
 use tokio::io::AsyncWrite;
 use tokio::io::AsyncWriteExt;
 
-pub(crate) struct RegistryDataS2C<'a, T: Serialize> {
+pub struct RegistryDataS2C<'a, T: Serialize> {
     pub(crate) id: &'a str,
     pub(crate) map: &'a DashMap<String, T>,
     pub(crate) cache: &'a DashMap<String, Vec<u8>>,

@@ -1,20 +1,10 @@
 use crate::network::connection::Connection;
-use crate::network::packet::s2c::login_success;
+use crate::network::packet::s2c::login_success::LoginSuccessS2C;
 use crate::network::packet::Decode;
 use crate::util::io::ReadExt;
 use anyhow::Result;
 use async_trait::async_trait;
-use tokio::io::{AsyncRead, AsyncReadExt};
-
-pub(crate) async fn login_start<R: AsyncRead + Unpin>(
-    connection: &mut Connection<'_>,
-    mut data: R,
-) -> Result<()> {
-    connection.username = Some(data.read_str().await?);
-    connection.uuid = Some(data.read_u128().await?);
-    connection.send_packet(&login_success::INSTANCE).await?;
-    Ok(())
-}
+use tokio::io::AsyncReadExt;
 
 pub struct LoginStart;
 
@@ -24,7 +14,7 @@ impl Decode for LoginStart {
         let mut data = data.as_slice();
         connection.username = Some(data.read_str().await?);
         connection.uuid = Some(data.read_u128().await?);
-        connection.send_packet(&login_success::INSTANCE).await?;
+        connection.send_packet(&LoginSuccessS2C).await?;
         Ok(())
     }
 }

@@ -23,8 +23,6 @@ pub trait Decode: Send + Sync {
     async fn decode(&self, connection: &mut Connection<'_>, data: Vec<u8>) -> Result<()>;
 }
 
-pub fn register_decoders() {}
-
 pub static LOGIN_DECODERS: LazyLock<ArcSwap<HashMap<i32, Box<dyn Decode>>>> = LazyLock::new(|| {
     let mut map: HashMap<i32, Box<dyn Decode>> = HashMap::new();
     map.insert(0x00, Box::new(c2s::login_start::LoginStart));

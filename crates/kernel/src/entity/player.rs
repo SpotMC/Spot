@@ -10,6 +10,7 @@ pub struct Player {
     pub game_mode: u8,
     pub previous_game_mode: i8,
     pub death_location: Option<(String, i32, i32, i32)>,
+    pub teleport_id: Option<i32>,
     pub(crate) tx: UnboundedSender<PlayerUpdate>,
 }
 
@@ -27,6 +28,7 @@ impl Player {
             game_mode: 0,
             previous_game_mode: -1,
             death_location: None,
+            teleport_id: None,
             tx,
         }
     }

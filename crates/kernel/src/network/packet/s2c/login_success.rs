@@ -5,8 +5,7 @@ use crate::util::{write_str, write_var_int};
 use anyhow::{anyhow, Result};
 use tokio::io::{AsyncWrite, AsyncWriteExt};
 
-pub(crate) static INSTANCE: LoginSuccessS2C = LoginSuccessS2C {};
-pub(crate) struct LoginSuccessS2C {}
+pub struct LoginSuccessS2C;
 
 impl Encode for LoginSuccessS2C {
     async fn encode<W: AsyncWrite + Unpin>(

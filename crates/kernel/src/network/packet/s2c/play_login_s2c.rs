@@ -1,5 +1,4 @@
 use crate::config::{HASHED_SEED, MAX_PLAYERS, SIMULATION_DISTANCE, VIEW_DISTANCE};
-use crate::entity::player::Player;
 use crate::network::connection::Connection;
 use crate::network::packet::Encode;
 use crate::registry::dimension_type::DIMENSION_TYPES;
@@ -8,22 +7,21 @@ use crate::util::encode_position;
 use crate::util::io::WriteExt;
 use anyhow::anyhow;
 use anyhow::Result;
-use parking_lot::Mutex;
-use std::sync::Arc;
 use tokio::io::{AsyncWrite, AsyncWriteExt};
 
-pub struct PlayLoginS2C {
-    pub player: Arc<Mutex<Player>>,
-}
+pub struct PlayLoginS2C;
 
 impl Encode for PlayLoginS2C {
     async fn encode<W: AsyncWrite + Unpin>(
         &self,
-        _connection: &mut Connection<'_>,
+        connection: &mut Connection<'_>,
         buf: &mut W,
     ) -> Result<()> {
         let (eid, dim, game_mode, previous_game_mode, death_location, portal_cooldown) = {
-            let player = self.player.lock();
+            let p = connection.player.clone().ok_or(anyhow!(
+                "PacketS2C: Login(play): invalid context: player is undefined"
+            ))?;
+            let player = p.lock();
             let eid = player.entity.entity_id;
             let dim = player.entity.dimension;
             let game_mode = player.game_mode;
