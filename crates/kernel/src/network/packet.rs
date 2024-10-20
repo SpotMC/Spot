@@ -3,6 +3,7 @@ use anyhow::Result;
 use arc_swap::ArcSwap;
 use async_trait::async_trait;
 use hashbrown::HashMap;
+use std::future::Future;
 use std::sync::{Arc, LazyLock};
 use tokio::io::AsyncWrite;
 
@@ -10,11 +11,11 @@ pub mod c2s;
 pub mod s2c;
 
 pub trait Encode {
-    async fn encode<W: AsyncWrite + Unpin>(
+    fn encode<W: AsyncWrite + Unpin>(
         &self,
         connection: &mut Connection<'_>,
         buf: &mut W,
-    ) -> Result<()>;
+    ) -> impl Future<Output = Result<()>>;
     fn get_id(&self) -> i32;
 }
 

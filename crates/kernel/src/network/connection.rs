@@ -58,7 +58,7 @@ pub(crate) async fn read_socket(socket: &mut TcpStream) -> Result<()> {
         }
     }
 }
-pub(crate) struct Connection<'a> {
+pub struct Connection<'a> {
     pub stream: &'a mut TcpStream,
     pub state: State,
     pub username: Option<String>,
@@ -76,12 +76,12 @@ pub(crate) struct Connection<'a> {
     pub recv: Option<UnboundedReceiver<PlayerUpdate>>,
 }
 
-pub(crate) enum ChatMode {
+pub enum ChatMode {
     Enabled,
     CommandsOnly,
     Hidden,
 }
-pub(crate) enum MainHand {
+pub enum MainHand {
     Left,
     Right,
 }
@@ -105,7 +105,7 @@ impl Connection<'_> {
             recv: None,
         }
     }
-    pub(crate) async fn send_packet<D: Encode>(&mut self, data: &D) -> Result<()> {
+    pub async fn send_packet<D: Encode>(&mut self, data: &D) -> Result<()> {
         let mut buf = Vec::new();
         buf.write_var_int(data.get_id()).await?;
         data.encode(self, &mut buf).await?;

@@ -2,6 +2,7 @@ use crate::world::dimension::Dimension;
 use crate::WORLD;
 use downcast_rs::{impl_downcast, DowncastSync};
 use std::sync::Arc;
+use uuid::Uuid;
 
 pub mod entity_manager;
 pub mod player;
@@ -68,6 +69,7 @@ pub trait LivingEntity: Entity {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct EntityData {
+    pub uuid: Uuid,
     pub dimension: usize,
     pub entity_id: i32,
     pub portal_cooldown: i32,
@@ -80,6 +82,26 @@ pub struct EntityData {
 impl EntityData {
     pub fn new(entity_id: i32, dimension: usize, pos: (f64, f64, f64)) -> EntityData {
         EntityData {
+            uuid: Uuid::new_v4(),
+            dimension,
+            entity_id,
+            portal_cooldown: 0,
+            pos,
+            velocity: (0.0, 0.0, 0.0),
+            on_ground: false,
+            yaw: 0.0,
+            pitch: 0.0,
+        }
+    }
+
+    pub fn with_uuid(
+        entity_id: i32,
+        uuid: Uuid,
+        dimension: usize,
+        pos: (f64, f64, f64),
+    ) -> EntityData {
+        EntityData {
+            uuid,
             dimension,
             entity_id,
             portal_cooldown: 0,

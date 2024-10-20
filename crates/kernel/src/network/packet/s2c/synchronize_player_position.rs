@@ -4,9 +4,9 @@ use crate::util::io::WriteExt;
 use anyhow::anyhow;
 use tokio::io::{AsyncWrite, AsyncWriteExt};
 
-pub struct SynchronizePlayerPosition;
+pub struct SynchronizePlayerPositionS2C;
 
-impl Encode for SynchronizePlayerPosition {
+impl Encode for SynchronizePlayerPositionS2C {
     async fn encode<W: AsyncWrite + Unpin>(
         &self,
         connection: &mut Connection<'_>,

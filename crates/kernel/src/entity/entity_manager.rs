@@ -4,7 +4,6 @@ use crate::world::dimension::Dimension;
 use dashmap::DashMap;
 use parking_lot::Mutex;
 use std::sync::Arc;
-
 pub struct EntityManager {
     entities: DashMap<i32, Arc<Mutex<dyn Entity>>>,
 }
@@ -36,6 +35,14 @@ impl EntityManager {
         EntityLookup {
             entities: self.entities.clone(),
         }
+    }
+
+    pub fn generate_eid(&self) -> i32 {
+        let mut eid = fastrand::i32(i32::MIN..i32::MAX);
+        while self.entities.contains_key(&eid) {
+            eid = fastrand::i32(i32::MIN..i32::MAX);
+        }
+        eid
     }
 }
 

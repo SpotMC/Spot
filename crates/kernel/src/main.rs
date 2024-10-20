@@ -6,7 +6,7 @@ pub mod config;
 pub mod entity;
 pub mod gameplay;
 pub mod item;
-pub(crate) mod network;
+pub mod network;
 pub mod registry;
 mod test;
 pub mod util;
@@ -40,7 +40,7 @@ pub const PROTOCOL_VERSION: i32 = 767;
 pub const MINECRAFT_VERSION: &str = "1.21"; // 1.21 - 1.21.1 ( Protocol 767 )
 include!(concat!(env!("OUT_DIR"), "/generated.rs"));
 pub static GENERATED: LazyLock<HashMap<&'static str, Resource>> = LazyLock::new(generate);
-pub static WORLD: LazyLock<world::World> = LazyLock::new(|| world::World::new());
+pub static WORLD: LazyLock<world::World> = LazyLock::new(world::World::new);
 #[tokio::main]
 #[instrument]
 async fn main() {

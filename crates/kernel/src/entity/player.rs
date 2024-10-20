@@ -2,6 +2,7 @@ use crate::entity::{Entity, EntityData, LivingEntity};
 use crate::registry::protocol_id::get_protocol_id;
 use crate::{impl_entity, impl_living_entity};
 use tokio::sync::mpsc::UnboundedSender;
+use uuid::Uuid;
 
 pub struct Player {
     pub health: f32,
@@ -20,11 +21,12 @@ impl Player {
         dimension: usize,
         tx: UnboundedSender<PlayerUpdate>,
         pos: (f64, f64, f64),
+        uuid: Uuid,
     ) -> Player {
         Player {
             health: 20.0,
             max_health: 20,
-            entity: EntityData::new(entity_id, dimension, pos),
+            entity: EntityData::with_uuid(entity_id, uuid, dimension, pos),
             game_mode: 0,
             previous_game_mode: -1,
             death_location: None,
@@ -46,5 +48,3 @@ impl PartialEq<Self> for Player {
 impl Eq for Player {}
 
 pub struct PlayerUpdate {}
-unsafe impl Send for PlayerUpdate {}
-unsafe impl Sync for PlayerUpdate {}
