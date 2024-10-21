@@ -1,7 +1,6 @@
 use crate::entity::player::Player;
 use crate::entity::Entity;
 use crate::network::connection::Connection;
-use crate::network::connection::State::Play;
 use crate::network::packet::s2c::game_event::{GameEvent, GameEventS2C};
 use crate::network::packet::s2c::play_login::PlayLoginS2C;
 use crate::network::packet::s2c::set_center_chunk::SetCenterChunkS2C;
@@ -47,6 +46,5 @@ pub(crate) async fn player_join(connection: &mut Connection<'_>) -> anyhow::Resu
     connection
         .send_packet(&SetCenterChunkS2C { chunk_x, chunk_z })
         .await?;
-    connection.state = Play;
     Ok(())
 }

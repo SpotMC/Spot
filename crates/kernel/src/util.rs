@@ -18,12 +18,12 @@ pub fn encode_position(x: i32, y: i32, z: i32) -> u64 {
 }
 
 pub async fn read_var_int<R: AsyncRead + Unpin>(reader: &mut R) -> Result<i32, Error> {
-    let mut val = 0;
+    let mut value = 0;
     for i in 0..5 {
         let byte = reader.read_u8().await?;
-        val |= (i32::from(byte) & 0b01111111) << (i * 7);
-        if byte & 0b10000000 == 0 {
-            return Ok(val);
+        value |= (byte as i32 & 0x7F) << (i * 7);
+        if byte & 0x80 == 0 {
+            return Ok(value);
         }
     }
     Err(Error::new(ErrorKind::InvalidData, "VarInt too big"))

@@ -29,7 +29,7 @@ use tokio::io::{stdin, AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::task::block_in_place;
 use tokio::time::MissedTickBehavior::Skip;
-use tracing::{debug, info, instrument, trace};
+use tracing::{debug, info, instrument, warn};
 use tracing_subscriber::fmt;
 use tracing_subscriber::fmt::format;
 
@@ -105,18 +105,18 @@ async fn accept_connection(result: Result<(TcpStream, SocketAddr), Error>) {
     match result {
         Ok((mut socket, _addr)) => {
             tokio::spawn(async move {
-                trace!("New connection accepted");
+                debug!("New connection accepted");
                 match read_socket(&mut socket).await {
                     Ok(()) => {}
                     Err(err) => {
-                        debug!("Error in handling packet: {:?}", err);
+                        warn!("Error in handling packet: {:?}", err);
                         let _ = socket.shutdown().await;
                     }
                 }
             });
         }
         Err(err) => {
-            debug!("Error in accepting connection: {:?}", err)
+            warn!("Error in accepting connection: {:?}", err)
         }
     }
 }

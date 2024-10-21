@@ -8,8 +8,7 @@ pub struct ClientInformation;
 
 #[async_trait]
 impl Decode for ClientInformation {
-    async fn decode(&self, connection: &mut Connection<'_>, data: Vec<u8>) -> Result<()> {
-        let mut data = data.as_slice();
+    async fn decode(&self, connection: &mut Connection<'_>, mut data: &[u8]) -> Result<()> {
         connection.locale = Some(data.read_str().await?);
         connection.view_distance = Some(data.read_i8().await?);
         connection.chat_mode = Some(match data.read_var_int().await? {

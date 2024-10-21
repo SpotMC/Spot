@@ -36,17 +36,23 @@ pub(crate) async fn read_socket(socket: &mut TcpStream) -> Result<()> {
             }
             Login => {
                 if let Some(decoder) = LOGIN_DECODERS.load().get(&packet.id) {
-                    decoder.decode(&mut connection, packet.data).await?;
+                    let mut buf = &*packet.data;
+                    buf.read_var_int().await?;
+                    decoder.decode(&mut connection, buf).await?;
                 }
             }
             State::Configuration => {
                 if let Some(decoder) = CONFIGURATION_DECODERS.load().get(&packet.id) {
-                    decoder.decode(&mut connection, packet.data).await?;
+                    let mut buf = &*packet.data;
+                    buf.read_var_int().await?;
+                    decoder.decode(&mut connection, buf).await?;
                 }
             }
             State::Play => {
                 if let Some(decoder) = PLAY_DECODERS.load().get(&packet.id) {
-                    decoder.decode(&mut connection, packet.data).await?;
+                    let mut buf = &*packet.data;
+                    buf.read_var_int().await?;
+                    decoder.decode(&mut connection, buf).await?;
                 }
             }
         }

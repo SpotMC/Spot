@@ -8,7 +8,7 @@ pub struct LoginAcknowledged;
 
 #[async_trait]
 impl Decode for LoginAcknowledged {
-    async fn decode(&self, connection: &mut Connection<'_>, _data: Vec<u8>) -> Result<()> {
+    async fn decode(&self, connection: &mut Connection<'_>, _data: &[u8]) -> Result<()> {
         connection.state = State::Configuration;
         connection.send_packet(&ConfigKnownPacksS2C).await?;
         Ok(())

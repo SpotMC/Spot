@@ -10,8 +10,7 @@ pub struct LoginStart;
 
 #[async_trait]
 impl Decode for LoginStart {
-    async fn decode(&self, connection: &mut Connection<'_>, data: Vec<u8>) -> Result<()> {
-        let mut data = data.as_slice();
+    async fn decode(&self, connection: &mut Connection<'_>, mut data: &[u8]) -> Result<()> {
         connection.username = Some(data.read_str().await?);
         connection.uuid = Some(data.read_u128().await?);
         connection.send_packet(&LoginSuccessS2C).await?;

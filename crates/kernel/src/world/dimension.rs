@@ -55,7 +55,6 @@ impl Dimension {
     ///
     /// # Returns
     /// Returns an `Arc`-wrapped `Chunk` object representing the chunk at the specified location.
-
     pub fn get_chunk(&self, chunk_x: i32, chunk_z: i32) -> Arc<Chunk> {
         let key = to_dim_xz(chunk_x, chunk_z);
         let tv = self.chunks.get_mut(&key);

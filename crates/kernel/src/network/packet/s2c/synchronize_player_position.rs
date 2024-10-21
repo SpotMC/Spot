@@ -12,7 +12,7 @@ impl Encode for SynchronizePlayerPositionS2C {
         connection: &mut Connection<'_>,
         buf: &mut W,
     ) -> anyhow::Result<()> {
-        let ((x, y, z), yaw, pitch, on_ground);
+        let ((x, y, z), yaw, pitch);
         let teleport_id;
         {
             teleport_id = fastrand::i32(i32::MIN..i32::MAX);
@@ -21,12 +21,7 @@ impl Encode for SynchronizePlayerPositionS2C {
             ))?;
             let mut player = p.lock();
             player.teleport_id = Some(teleport_id);
-            ((x, y, z), yaw, pitch, on_ground) = (
-                player.entity.pos,
-                player.entity.yaw,
-                player.entity.pitch,
-                player.entity.on_ground,
-            );
+            ((x, y, z), yaw, pitch) = (player.entity.pos, player.entity.yaw, player.entity.pitch);
         }
 
         buf.write_f64(x).await?;
@@ -34,7 +29,6 @@ impl Encode for SynchronizePlayerPositionS2C {
         buf.write_f64(z).await?;
         buf.write_f32(yaw).await?;
         buf.write_f32(pitch).await?;
-        buf.write_bool(on_ground).await?;
         buf.write_i8(0).await?;
         buf.write_var_int(teleport_id).await?;
         Ok(())

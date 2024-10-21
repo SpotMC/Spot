@@ -21,7 +21,7 @@ pub trait Encode {
 
 #[async_trait]
 pub trait Decode: Send + Sync {
-    async fn decode(&self, connection: &mut Connection<'_>, data: Vec<u8>) -> Result<()>;
+    async fn decode(&self, connection: &mut Connection<'_>, data: &[u8]) -> Result<()>;
 }
 
 pub static LOGIN_DECODERS: LazyLock<ArcSwap<HashMap<i32, Box<dyn Decode>>>> = LazyLock::new(|| {
@@ -33,13 +33,19 @@ pub static LOGIN_DECODERS: LazyLock<ArcSwap<HashMap<i32, Box<dyn Decode>>>> = La
 pub static CONFIGURATION_DECODERS: LazyLock<ArcSwap<HashMap<i32, Box<dyn Decode>>>> =
     LazyLock::new(|| {
         let mut map: HashMap<i32, Box<dyn Decode>> = HashMap::new();
+        map.insert(0x00, Box::new(c2s::client_info::ClientInformation));
         map.insert(
-            0x00,
+            0x03,
             Box::new(c2s::acknowledge_finish_configuration::AcknowledgeFinishConfiguration),
         );
-        map.insert(0x03, Box::new(c2s::client_info::ClientInformation));
         map.insert(0x07, Box::new(c2s::known_packs_c2s::ServerBoundKnownPacks));
-        ArcSwap::new(Arc::new(HashMap::new()))
+        ArcSwap::new(Arc::new(map))
     });
-pub static PLAY_DECODERS: LazyLock<ArcSwap<HashMap<i32, Box<dyn Decode>>>> =
-    LazyLock::new(|| ArcSwap::new(Arc::new(HashMap::new())));
+pub static PLAY_DECODERS: LazyLock<ArcSwap<HashMap<i32, Box<dyn Decode>>>> = LazyLock::new(|| {
+    let mut map: HashMap<i32, Box<dyn Decode>> = HashMap::new();
+    map.insert(
+        0x00,
+        Box::new(c2s::confirm_teleportation::ConfirmTeleportation),
+    );
+    ArcSwap::new(Arc::new(map))
+});

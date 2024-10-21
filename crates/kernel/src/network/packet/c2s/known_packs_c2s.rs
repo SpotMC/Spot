@@ -9,7 +9,7 @@ pub struct ServerBoundKnownPacks;
 
 #[async_trait]
 impl Decode for ServerBoundKnownPacks {
-    async fn decode(&self, connection: &mut Connection<'_>, _data: Vec<u8>) -> Result<()> {
+    async fn decode(&self, connection: &mut Connection<'_>, _data: &[u8]) -> Result<()> {
         send_registry_data(connection).await?;
         connection.send_packet(&FinishConfigurationS2C).await?;
         Ok(())
