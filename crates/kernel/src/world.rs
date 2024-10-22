@@ -17,6 +17,7 @@ pub mod block_update;
 pub mod chunk;
 pub mod dimension;
 pub mod gen;
+mod height_map;
 
 static WORLD_TICK_CALLBACK: EventCallback<Raw<World>> = EventCallback::new();
 

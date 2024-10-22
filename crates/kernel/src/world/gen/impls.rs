@@ -13,7 +13,7 @@ impl Worldgen for SuperFlatWorldgen {
             let y = y as i32 + self.start_y as i32;
             for x in 0..16 {
                 for z in 0..16 {
-                    guard.set_block(x, y, z, *block);
+                    guard.set_block(x, y, z, *block).unwrap();
                 }
             }
         }

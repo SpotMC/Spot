@@ -115,7 +115,9 @@ impl Dimension {
         let chunk_z = z >> 4;
         let min_y = self.dimension_type.min_y;
         let chunk = self.get_chunk(chunk_x, chunk_z);
-        chunk.set_block(x - chunk_x * 16, y - min_y, z - chunk_z * 16, block);
+        chunk
+            .set_block(x - chunk_x * 16, y - min_y, z - chunk_z * 16, block)
+            .unwrap();
         chunk
     }
     fn insert_new_chunk(&self, x: i32, z: i32, chunk: &Arc<Chunk>) {

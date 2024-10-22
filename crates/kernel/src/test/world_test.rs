@@ -14,9 +14,9 @@ mod chunk {
             ),
             0,
         );
-        chunk.set_block(0, 0, 0, 9);
-        chunk.set_block(11, 45, 14, 9);
-        chunk.set_block(15, 383, 15, 9);
+        chunk.set_block(0, 0, 0, 9).unwrap();
+        chunk.set_block(11, 45, 14, 9).unwrap();
+        chunk.set_block(15, 383, 15, 9).unwrap();
         assert_eq!(chunk.get_block(0, 0, 0), Some(9));
         assert_eq!(chunk.get_block(11, 45, 14), Some(9));
         assert_eq!(chunk.get_block(15, 383, 15), Some(9));
