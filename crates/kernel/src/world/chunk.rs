@@ -82,7 +82,14 @@ impl Chunk {
     /// If the section does not exist, it returns immediately.
     /// Finally, it sets the specified block type within the determined section.
     pub fn set_block(&self, x: i32, y: i32, z: i32, block: u32) -> anyhow::Result<()> {
-        let idx = check_pos(x, y, z, self.height).ok_or(anyhow!("Invalid position"))?;
+        if !(0..16).contains(&x) {
+            return Err(anyhow!("Invalid x coord: {}", x));
+        } else if !(0..16).contains(&z) {
+            return Err(anyhow!("Invalid z coord: {}", z));
+        } else if y < 0 || y >= self.height {
+            return Err(anyhow!("Invalid y coord: {}", y));
+        }
+        let idx = y as usize / 16;
         let section = self.data.get(idx).ok_or(anyhow!("Invalid position"))?;
         let sy = ((y as usize) - (16 * idx)) as u32;
         section.set_state(x as u32, sy, z as u32, block);
@@ -119,14 +126,21 @@ impl Chunk {
 
     pub fn get_sky_light(&self, x: i32, y: i32, z: i32) -> Option<u8> {
         let idx = check_pos(x, y, z, self.height)?;
-        let section = self.data.get(idx)?;
+        let section = unsafe { self.data.get_unchecked(idx) };
         let sy = ((y as usize) - (16 * idx)) as u32;
         Some(section.get_sky_light(x as u32, sy, z as u32))
     }
 
     pub fn set_sky_light(&self, x: i32, y: i32, z: i32, light: u8) -> anyhow::Result<()> {
-        let idx = check_pos(x, y, z, self.height).ok_or(anyhow!("Invalid position"))?;
-        let section = self.data.get(idx).ok_or(anyhow!("Invalid position"))?;
+        if !(0..16).contains(&x) {
+            return Err(anyhow!("Invalid x coord: {}", x));
+        } else if !(0..16).contains(&z) {
+            return Err(anyhow!("Invalid z coord: {}", z));
+        } else if y < 0 || y >= self.height {
+            return Err(anyhow!("Invalid y coord: {}", y));
+        }
+        let idx = y as usize / 16;
+        let section = unsafe { self.data.get_unchecked(idx) };
         let sy = ((y as usize) - (16 * idx)) as u32;
         section.set_sky_light(x as u32, sy, z as u32, light);
         Ok(())
@@ -134,14 +148,21 @@ impl Chunk {
 
     pub fn get_block_light(&self, x: i32, y: i32, z: i32) -> Option<u8> {
         let idx = check_pos(x, y, z, self.height)?;
-        let section = self.data.get(idx)?;
+        let section = unsafe { self.data.get_unchecked(idx) };
         let sy = ((y as usize) - (16 * idx)) as u32;
         Some(section.get_block_light(x as u32, sy, z as u32))
     }
 
     pub fn set_block_light(&self, x: i32, y: i32, z: i32, light: u8) -> anyhow::Result<()> {
-        let idx = check_pos(x, y, z, self.height).ok_or(anyhow!("Invalid position"))?;
-        let section = self.data.get(idx).ok_or(anyhow!("Invalid position"))?;
+        if !(0..16).contains(&x) {
+            return Err(anyhow!("Invalid x coord: {}", x));
+        } else if !(0..16).contains(&z) {
+            return Err(anyhow!("Invalid z coord: {}", z));
+        } else if y < 0 || y >= self.height {
+            return Err(anyhow!("Invalid y coord: {}", y));
+        }
+        let idx = y as usize / 16;
+        let section = unsafe { self.data.get_unchecked(idx) };
         let sy = ((y as usize) - (16 * idx)) as u32;
         section.set_block_light(x as u32, sy, z as u32, light);
         Ok(())
@@ -201,8 +222,15 @@ impl ChunkGuard<'_> {
     /// It first validates the coordinates and then finds the corresponding chunk.
     /// If the coordinates are out of bounds or the chunk is not accessible, the operation is ignored.
     pub fn set_block(&mut self, x: i32, y: i32, z: i32, block: u32) -> anyhow::Result<()> {
-        let idx = check_pos(x, y, z, self.height).ok_or(anyhow!("Invalid position"))?;
-        let section = self.data.get_mut(idx).ok_or(anyhow!("Invalid position"))?;
+        if !(0..16).contains(&x) {
+            return Err(anyhow!("Invalid x coord: {}", x));
+        } else if !(0..16).contains(&z) {
+            return Err(anyhow!("Invalid z coord: {}", z));
+        } else if y < 0 || y >= self.height {
+            return Err(anyhow!("Invalid y coord: {}", y));
+        }
+        let idx = y as usize / 16;
+        let section = unsafe { self.data.get_unchecked_mut(idx) };
         let sy = ((y as usize) - (16 * idx)) as u32;
         section.set_state(x as u32, sy, z as u32, block);
         Ok(())
