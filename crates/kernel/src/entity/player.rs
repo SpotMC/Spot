@@ -1,7 +1,8 @@
 use crate::config::VIEW_DISTANCE;
 use crate::entity::{Entity, EntityData, LivingEntity};
 use crate::registry::protocol_id::get_protocol_id;
-use crate::world::chunk::Chunk;
+use crate::util::arc_channel::MultipleReceiver;
+use crate::world::chunk::{Chunk, ChunkUpdate};
 use crate::{impl_entity, impl_living_entity};
 use std::sync::Arc;
 use tokio::sync::mpsc::UnboundedSender;
@@ -17,6 +18,7 @@ pub struct Player {
     pub teleport_id: Option<i32>,
     pub chunks: Vec<Arc<Chunk>>,
     pub tx: UnboundedSender<PlayerUpdate>,
+    pub recv: MultipleReceiver<ChunkUpdate>,
 }
 
 impl Player {
@@ -36,18 +38,21 @@ impl Player {
             death_location: None,
             teleport_id: None,
             chunks: Vec::with_capacity(512),
+            recv: MultipleReceiver::default(),
             tx,
         }
     }
 
-    pub fn swap(&mut self) {
+    pub fn update(&mut self) {
         let mut del: Vec<usize> = Vec::with_capacity(128);
         let mut i = 0;
         let view_distance = (*VIEW_DISTANCE + 1) as f64 * 16f64;
         while i < self.chunks.len() {
             let chunk = &self.chunks[i];
-            let block_x = (chunk.pos >> 32) * 16;
-            let block_z = (chunk.pos << 32 >> 32) * 16;
+            let (block_x, block_z) = {
+                let (chunk_x, chunk_z) = chunk.get_position();
+                (chunk_x * 16, chunk_z * 16)
+            };
             if (self.entity.pos.0 - block_x as f64).abs() > view_distance
                 || (self.entity.pos.2 - block_z as f64).abs() > view_distance
             {
@@ -56,7 +61,7 @@ impl Player {
             i += 1;
         }
         for i in del.iter().rev() {
-            self.chunks.remove(*i);
+            self.chunks.remove(*i).player_exit(self);
         }
     }
 }
@@ -72,4 +77,4 @@ impl PartialEq<Self> for Player {
 
 impl Eq for Player {}
 
-pub struct PlayerUpdate {}
+pub enum PlayerUpdate {}

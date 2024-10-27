@@ -1,3 +1,4 @@
+pub mod arc_channel;
 pub mod io;
 pub mod raw;
 

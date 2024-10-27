@@ -1,20 +1,33 @@
+use crate::entity::player::Player;
+use crate::util::arc_channel::ArcChannel;
 use crate::util::io::WriteExt;
+use crate::util::raw::Raw;
+use crate::world::chunk::ChunkUpdate::BlockChange;
 use crate::world::dimension::Dimension;
 use crate::world::height_map::HeightMap;
-use crate::WORLD;
 use anyhow::anyhow;
+use arc_swap::ArcSwapOption;
+use bit_set::BitSet;
+use bytes::BytesMut;
+use dashmap::DashMap;
 use hashbrown::HashMap;
-use parking_lot::{Mutex, MutexGuard};
+use parking_lot::{Mutex, MutexGuard, RwLock};
+use rayon::prelude::*;
+use simdnbt::owned::NbtTag::LongArray;
+use simdnbt::owned::{BaseNbt, NbtCompound};
 use std::sync::atomic::{AtomicI16, Ordering};
+use std::sync::{Arc, Weak};
 use tokio::io::{AsyncWrite, AsyncWriteExt};
 
 pub struct Chunk {
-    pub world_surface: Mutex<HeightMap>,
-    pub motion_blocking: Mutex<HeightMap>,
-    pub(crate) data: Vec<Section>,
-    pub pos: u64,
-    pub height: i32,
-    pub(crate) idx: u32,
+    world_surface: Mutex<HeightMap>,
+    motion_blocking: Mutex<HeightMap>,
+    data: Vec<Section>,
+    pos: u64,
+    height: i32,
+    dimension: Raw<DashMap<u64, Weak<Chunk>>>,
+    channel: RwLock<ArcChannel<ChunkUpdate>>,
+    cache: ArcSwapOption<BytesMut>,
 }
 
 impl Chunk {
@@ -38,13 +51,75 @@ impl Chunk {
             data.push(Section::new());
         }
         Chunk {
-            world_surface: Mutex::new(HeightMap::new()),
-            motion_blocking: Mutex::new(HeightMap::new()),
+            world_surface: Mutex::new(HeightMap::new(height)),
+            motion_blocking: Mutex::new(HeightMap::new(height)),
             data,
             height,
-            idx: dimension.dim_idx,
+            dimension: Raw::from(&dimension.chunks),
             pos,
+            channel: RwLock::default(),
+            cache: ArcSwapOption::empty(),
         }
+    }
+    /// Retrieves the mutex guard for the world-surface height map.
+    ///
+    /// # Returns
+    /// * `MutexGuard<HeightMap>` - A guard that provides mutable access to the height map,
+    /// ensuring that no other thread can modify it while the guard is held.
+    #[inline]
+    pub fn get_world_surface(&self) -> MutexGuard<HeightMap> {
+        self.world_surface.lock()
+    }
+    /// Retrieves the mutex guard for the motion-blocking height map.
+    ///
+    /// # Returns
+    /// * `MutexGuard<HeightMap>` - A guard that provides mutable access to the height map,
+    /// ensuring that no other thread can modify it while the guard is held.
+    #[inline]
+    pub fn get_motion_blocking(&self) -> MutexGuard<HeightMap> {
+        self.motion_blocking.lock()
+    }
+
+    /// Gets chunk's position coordinates.
+    #[inline]
+    pub fn get_position(&self) -> (i32, i32) {
+        ((self.pos >> 32) as i32, (self.pos & 0xFFFFFFFF) as i32)
+    }
+
+    /// Retrieves the serialized chunk data.
+    ///
+    /// This function attempts to retrieve the serialized data from a cache.
+    /// If the cache is empty,
+    /// it performs the serialization and stores the result in the cache for future use.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(Arc<BytesMut>)`: The serialized data wrapped in an `Arc<BytesMut>`.
+    /// - `Err(anyhow::Error)`: An error if serialization or cache operations fail.
+    pub async fn get_serialized(&self) -> anyhow::Result<Arc<BytesMut>> {
+        match self.cache.load().as_ref() {
+            Some(cache) => Ok(cache.clone()),
+            None => {
+                let mut buf = Vec::with_capacity(2048);
+                self.serialize(&mut buf).await?;
+                let buf = Arc::from(BytesMut::from(buf.as_slice()));
+                self.cache.store(Some(buf.clone()));
+                Ok(buf)
+            }
+        }
+    }
+
+    pub fn player_enter(&self, player: &mut Player) {
+        player.recv.add(self.pos, self.channel.write().subscribe());
+    }
+    pub fn player_exit(&self, player: &mut Player) {
+        if let Some(recv) = player.recv.remove(self.pos) {
+            self.channel.write().remove(&recv);
+        }
+    }
+    #[inline]
+    fn invalidate_cache(&self) {
+        self.cache.store(None);
     }
     /// Get the block information at the specified coordinates (x, y, z).
     ///
@@ -89,6 +164,8 @@ impl Chunk {
         } else if y < 0 || y >= self.height {
             return Err(anyhow!("Invalid y coord: {}", y));
         }
+        self.invalidate_cache();
+        self.channel.read().broadcast(BlockChange(x, y, z, block));
         let idx = y as usize / 16;
         let section = self.data.get(idx).ok_or(anyhow!("Invalid position"))?;
         let sy = ((y as usize) - (16 * idx)) as u32;
@@ -109,12 +186,14 @@ impl Chunk {
     /// # Notes
     /// This method retrieves the section data based on the provided section
     pub fn get_section(&self, y: usize) -> Option<SectionDataGuard> {
+        self.invalidate_cache();
         Some(self.data.get(y / 16)?.get_data_guard())
     }
     /// Get a guard object that provides pre-locked access to the chunk data.
     pub fn get_guard(&self) -> ChunkGuard<'_> {
         let sections = self.data.len();
         let mut data = Vec::with_capacity(sections);
+        self.invalidate_cache();
         for i in 0..sections {
             data.push(self.data.get(i).unwrap().get_data_guard());
         }
@@ -124,6 +203,16 @@ impl Chunk {
         }
     }
 
+    /// Retrieves the sky light value at the specified position.
+    ///
+    /// # Arguments
+    /// * `x` - The x-coordinate of the block.
+    /// * `y` - The y-coordinate of the block.
+    /// * `z` - The z-coordinate of the block.
+    ///
+    /// # Returns
+    /// * `Option<u8>` - The light value of the block at the specified position, or `None`
+    /// if the position is invalid.
     pub fn get_sky_light(&self, x: i32, y: i32, z: i32) -> Option<u8> {
         let idx = check_pos(x, y, z, self.height)?;
         let section = unsafe { self.data.get_unchecked(idx) };
@@ -131,6 +220,27 @@ impl Chunk {
         Some(section.get_sky_light(x as u32, sy, z as u32))
     }
 
+    /// Sets the sky light value at a specific position.
+    ///
+    /// This function will invalidate the cache.
+    ///
+    /// # Arguments
+    ///
+    /// * `x` - The x coordinate of the block, valid range is 0 to 15
+    /// * `y` - The y coordinate of the block, valid range is 0 to `self.height - 1`
+    /// * `z` - The z coordinate of the block, valid range is 0 to 15
+    /// * `light` - The light value to set, valid range is 0 to 15
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - If the operation was successful
+    /// * `Err(anyhow::Error)` - If any of the coordinates are out of bounds
+    ///
+    /// # Errors
+    ///
+    /// * Returns an error if `x` is not in the range 0 to 15
+    /// * Returns an error if `z` is not in the range 0 to 15
+    /// * Returns an error if `y` is not in the range 0 to `self.height - 1`
     pub fn set_sky_light(&self, x: i32, y: i32, z: i32, light: u8) -> anyhow::Result<()> {
         if !(0..16).contains(&x) {
             return Err(anyhow!("Invalid x coord: {}", x));
@@ -139,6 +249,7 @@ impl Chunk {
         } else if y < 0 || y >= self.height {
             return Err(anyhow!("Invalid y coord: {}", y));
         }
+        self.invalidate_cache();
         let idx = y as usize / 16;
         let section = unsafe { self.data.get_unchecked(idx) };
         let sy = ((y as usize) - (16 * idx)) as u32;
@@ -146,6 +257,16 @@ impl Chunk {
         Ok(())
     }
 
+    /// Retrieves the block light value at the specified position.
+    ///
+    /// # Arguments
+    /// * `x` - The x-coordinate of the block.
+    /// * `y` - The y-coordinate of the block.
+    /// * `z` - The z-coordinate of the block.
+    ///
+    /// # Returns
+    /// * `Option<u8>` - The light value of the block at the specified position, or `None`
+    /// if the position is invalid.
     pub fn get_block_light(&self, x: i32, y: i32, z: i32) -> Option<u8> {
         let idx = check_pos(x, y, z, self.height)?;
         let section = unsafe { self.data.get_unchecked(idx) };
@@ -153,6 +274,27 @@ impl Chunk {
         Some(section.get_block_light(x as u32, sy, z as u32))
     }
 
+    /// Sets the block light value at a specific position.
+    ///
+    /// This function will invalidate the cache.
+    ///
+    /// # Arguments
+    ///
+    /// * `x` - The x coordinate of the block, valid range is 0 to 15
+    /// * `y` - The y coordinate of the block, valid range is 0 to `self.height - 1`
+    /// * `z` - The z coordinate of the block, valid range is 0 to 15
+    /// * `light` - The light value to set, valid range is 0 to 15
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - If the operation was successful
+    /// * `Err(anyhow::Error)` - If any of the coordinates are out of bounds
+    ///
+    /// # Errors
+    ///
+    /// * Returns an error if `x` is not in the range 0 to 15
+    /// * Returns an error if `z` is not in the range 0 to 15
+    /// * Returns an error if `y` is not in the range 0 to `self.height - 1`
     pub fn set_block_light(&self, x: i32, y: i32, z: i32, light: u8) -> anyhow::Result<()> {
         if !(0..16).contains(&x) {
             return Err(anyhow!("Invalid x coord: {}", x));
@@ -161,23 +303,149 @@ impl Chunk {
         } else if y < 0 || y >= self.height {
             return Err(anyhow!("Invalid y coord: {}", y));
         }
+        self.invalidate_cache();
         let idx = y as usize / 16;
         let section = unsafe { self.data.get_unchecked(idx) };
         let sy = ((y as usize) - (16 * idx)) as u32;
         section.set_block_light(x as u32, sy, z as u32, light);
         Ok(())
     }
+
+    async fn serialize<W: AsyncWrite + Unpin>(&self, buffer: &mut W) -> anyhow::Result<()> {
+        // Chunk Position
+        buffer.write_u64(self.pos).await?;
+        // Height Map
+        let mut height_map = Vec::with_capacity(256);
+        BaseNbt::new(
+            "",
+            NbtCompound::from_values(vec![
+                (
+                    "MOTION_BLOCKING".into(),
+                    LongArray(self.motion_blocking.lock().serialize()?),
+                ),
+                (
+                    "WORLD_SURFACE".into(),
+                    LongArray(self.world_surface.lock().serialize()?),
+                ),
+            ]),
+        )
+        .write_unnamed(&mut height_map);
+        buffer.write_all(&height_map).await?;
+        // Block Data
+        let mut section_data = Vec::with_capacity(2048);
+        for section in self.data.iter() {
+            section
+                .get_data_guard()
+                .serialize(&mut section_data)
+                .await?;
+        }
+        buffer.write_var_int(section_data.len() as i32).await?;
+        buffer.write_all(&section_data).await?;
+        // Block Entities (WIP)
+        buffer.write_var_int(0).await?;
+        // Light (WIP)
+        let sky_light_mask = BitSet::with_capacity(self.data.len() + 2);
+        let block_light_mask = BitSet::with_capacity(self.data.len() + 2);
+        let mut empty_sky_light_mask = BitSet::with_capacity(self.data.len() + 2);
+        let mut empty_block_light_mask = BitSet::with_capacity(self.data.len() + 2);
+
+        empty_block_light_mask.insert(0);
+        empty_sky_light_mask.insert(0);
+        empty_block_light_mask.insert(self.data.len() + 1);
+        empty_sky_light_mask.insert(self.data.len() + 1);
+
+        let sky_light_mask = Mutex::from(sky_light_mask);
+        let block_light_mask = Mutex::from(block_light_mask);
+        let empty_sky_light_mask = Mutex::from(empty_sky_light_mask);
+        let empty_block_light_mask = Mutex::from(empty_block_light_mask);
+
+        let sky = Mutex::from(vec![false; self.data.len()]);
+        let block = Mutex::from(vec![false; self.data.len()]);
+        // TODO :BitSet should be replaced by valence's BitSet
+        self.data
+            .par_iter()
+            .enumerate()
+            .for_each(|(index, section)| {
+                let guard = section.get_light_guard();
+                let mut sky_not_empty = false;
+                let mut block_not_empty = false;
+
+                for value in guard.sky_light.iter() {
+                    if *value != 0 {
+                        sky_not_empty = true;
+                        break;
+                    }
+                }
+                for value in guard.block_light.iter() {
+                    if *value != 0 {
+                        block_not_empty = true;
+                        break;
+                    }
+                }
+
+                if sky_not_empty {
+                    sky.lock()[index] = true;
+                    sky_light_mask.lock().insert(index);
+                    empty_sky_light_mask.lock().remove(index);
+                } else {
+                    sky_light_mask.lock().remove(index);
+                    empty_sky_light_mask.lock().insert(index);
+                }
+                if block_not_empty {
+                    block.lock()[index] = true;
+                    block_light_mask.lock().insert(index);
+                    empty_block_light_mask.lock().remove(index);
+                } else {
+                    block_light_mask.lock().remove(index);
+                    empty_block_light_mask.lock().insert(index);
+                }
+            });
+        let sky_mask = sky_light_mask.into_inner();
+        let block_mask = block_light_mask.into_inner();
+        let block = block.into_inner();
+        let sky = sky.into_inner();
+
+        buffer.write_bitset(&sky_mask).await?;
+        buffer.write_bitset(&block_mask).await?;
+        buffer
+            .write_bitset(&empty_sky_light_mask.into_inner())
+            .await?;
+        buffer
+            .write_bitset(&empty_block_light_mask.into_inner())
+            .await?;
+
+        buffer.write_var_int(sky_mask.len() as i32).await?;
+        for (index, section) in self.data.iter().enumerate() {
+            if sky[index] {
+                buffer.write_var_int(2048).await?;
+                buffer
+                    .write_all(section.sky_light.lock().as_slice())
+                    .await?;
+            }
+        }
+        buffer.write_var_int(block_mask.len() as i32).await?;
+        for (index, section) in self.data.iter().enumerate() {
+            if block[index] {
+                buffer.write_var_int(2048).await?;
+                buffer
+                    .write_all(section.block_light.lock().as_slice())
+                    .await?;
+            }
+        }
+        Ok(())
+    }
 }
 
 impl Drop for Chunk {
     fn drop(&mut self) {
-        WORLD
-            .dimensions
-            .get(self.idx as usize)
-            .unwrap()
-            .chunks
-            .remove(&self.pos);
+        if let Some(chunks) = self.dimension.get() {
+            chunks.remove(&self.pos);
+        }
     }
+}
+
+pub enum ChunkUpdate {
+    BlockChange(i32, i32, i32, u32),
 }
 
 pub struct ChunkGuard<'a> {
@@ -249,10 +517,10 @@ fn check_pos(x: i32, y: i32, z: i32, height: i32) -> Option<usize> {
 }
 
 pub struct Section {
-    pub sky_light: Mutex<[u8; 2048]>,
-    pub block_light: Mutex<[u8; 2048]>,
-    pub data: Mutex<[u32; 4096]>,
-    pub block_count: AtomicI16,
+    sky_light: Mutex<[u8; 2048]>,
+    block_light: Mutex<[u8; 2048]>,
+    data: Mutex<[u32; 4096]>,
+    block_count: AtomicI16,
 }
 
 impl Section {
@@ -342,9 +610,9 @@ impl Section {
         let index = ((y << 8) | (z << 4) | x) as usize;
         let mut data = self.data.lock();
         if state != 0 && unsafe { data.get_unchecked(index) == &0 } {
-            self.block_count.fetch_add(1, Ordering::Relaxed);
+            self.block_count.fetch_add(1, Ordering::SeqCst);
         } else if state == 0 && unsafe { data.get_unchecked(index) != &0 } {
-            self.block_count.fetch_sub(1, Ordering::Relaxed);
+            self.block_count.fetch_sub(1, Ordering::SeqCst);
         }
         data[index] = state;
     }
@@ -356,11 +624,70 @@ impl Section {
             count: &self.block_count,
         }
     }
+
+    #[inline]
+    pub fn get_light_guard(&self) -> SectionLightGuard {
+        SectionLightGuard {
+            sky_light: self.sky_light.lock(),
+            block_light: self.block_light.lock(),
+        }
+    }
+
+    pub fn get_block_count(&self) -> i16 {
+        self.block_count.load(Ordering::Acquire)
+    }
 }
 
 impl Default for Section {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+pub struct SectionLightGuard<'a> {
+    pub sky_light: MutexGuard<'a, [u8; 2048]>,
+    pub block_light: MutexGuard<'a, [u8; 2048]>,
+}
+
+impl SectionLightGuard<'_> {
+    pub fn get_sky_light(&self, x: u32, y: u32, z: u32) -> u8 {
+        let index = (((y << 8) | (z << 4) | x) / 2) as usize;
+        let base = self.sky_light[index];
+        if x % 2 == 0 {
+            base >> 4
+        } else {
+            base
+        }
+    }
+
+    pub fn get_block_light(&self, x: u32, y: u32, z: u32) -> u8 {
+        let index = (((y << 8) | (z << 4) | x) / 2) as usize;
+        let base = self.block_light[index];
+        if x % 2 == 0 {
+            base >> 4
+        } else {
+            base
+        }
+    }
+
+    pub fn set_sky_light(&mut self, x: u32, y: u32, z: u32, light: u8) {
+        let index = (((y << 8) | (z << 4) | x) / 2) as usize;
+        let base = self.sky_light[index];
+        if x % 2 == 0 {
+            self.sky_light[index] = (light << 4) | (base & 0xF);
+        } else {
+            self.sky_light[index] = (light & 0xF) | (base & 0xF0)
+        }
+    }
+
+    pub fn set_block_light(&mut self, x: u32, y: u32, z: u32, light: u8) {
+        let index = (((y << 8) | (z << 4) | x) / 2) as usize;
+        let base = self.block_light[index];
+        if x % 2 == 0 {
+            self.block_light[index] = (light << 4) | (base & 0xF);
+        } else {
+            self.block_light[index] = (light & 0xF) | (base & 0xF0)
+        }
     }
 }
 
@@ -420,11 +747,14 @@ impl SectionDataGuard<'_> {
     pub fn set_state(&mut self, x: u32, y: u32, z: u32, state: u32) {
         let index = ((y << 8) | (z << 4) | x) as usize;
         if state != 0 && unsafe { self.data.get_unchecked(index) == &0 } {
-            self.count.fetch_add(1, Ordering::Relaxed);
+            self.count.fetch_add(1, Ordering::SeqCst);
         } else if state == 0 && unsafe { self.data.get_unchecked(index) != &0 } {
-            self.count.fetch_sub(1, Ordering::Relaxed);
+            self.count.fetch_sub(1, Ordering::SeqCst);
         }
         self.data[index] = state;
+    }
+    pub fn get_block_count(&self) -> i16 {
+        self.count.load(Ordering::SeqCst)
     }
 
     /// Serializes the data and writes it to an asynchronous writer.
@@ -443,8 +773,8 @@ impl SectionDataGuard<'_> {
     /// # Returns
     /// Returns an `anyhow::Result<()>`, indicating the result of the asynchronous operation.
     ///
-    pub async fn serialize(&self, mut buffer: impl AsyncWrite + Unpin) -> anyhow::Result<()> {
-        let count_all = self.count.load(Ordering::Relaxed);
+    pub async fn serialize<W: AsyncWrite + Unpin>(&self, buffer: &mut W) -> anyhow::Result<()> {
+        let count_all = self.count.load(Ordering::SeqCst);
         buffer.write_i16(count_all).await?;
         let mut set: HashMap<u32, u32> = HashMap::with_capacity(1024);
         let mut entry: i32 = -1;
@@ -485,6 +815,7 @@ impl SectionDataGuard<'_> {
             }
             buffer.write_u64(long).await?;
         }
+        // TODO: Biome palette
         Ok(())
     }
 }
