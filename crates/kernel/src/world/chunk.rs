@@ -1,4 +1,5 @@
 use crate::entity::player::Player;
+use crate::entity::Entity;
 use crate::util::arc_channel::ArcChannel;
 use crate::util::io::WriteExt;
 use crate::util::raw::Raw;
@@ -65,7 +66,7 @@ impl Chunk {
     ///
     /// # Returns
     /// * `MutexGuard<HeightMap>` - A guard that provides mutable access to the height map,
-    /// ensuring that no other thread can modify it while the guard is held.
+    ///   ensuring that no other thread can modify it while the guard is held.
     #[inline]
     pub fn get_world_surface(&self) -> MutexGuard<HeightMap> {
         self.world_surface.lock()
@@ -74,7 +75,7 @@ impl Chunk {
     ///
     /// # Returns
     /// * `MutexGuard<HeightMap>` - A guard that provides mutable access to the height map,
-    /// ensuring that no other thread can modify it while the guard is held.
+    ///   ensuring that no other thread can modify it while the guard is held.
     #[inline]
     pub fn get_motion_blocking(&self) -> MutexGuard<HeightMap> {
         self.motion_blocking.lock()
@@ -110,7 +111,12 @@ impl Chunk {
     }
 
     pub fn player_enter(&self, player: &mut Player) {
-        player.recv.add(self.pos, self.channel.write().subscribe());
+        player.recv.add(
+            self.pos,
+            self.channel
+                .write()
+                .subscribe_with_id(player.get_eid() as usize),
+        );
     }
     pub fn player_exit(&self, player: &mut Player) {
         if let Some(recv) = player.recv.remove(self.pos) {
@@ -212,7 +218,7 @@ impl Chunk {
     ///
     /// # Returns
     /// * `Option<u8>` - The light value of the block at the specified position, or `None`
-    /// if the position is invalid.
+    ///   if the position is invalid.
     pub fn get_sky_light(&self, x: i32, y: i32, z: i32) -> Option<u8> {
         let idx = check_pos(x, y, z, self.height)?;
         let section = unsafe { self.data.get_unchecked(idx) };
@@ -266,7 +272,7 @@ impl Chunk {
     ///
     /// # Returns
     /// * `Option<u8>` - The light value of the block at the specified position, or `None`
-    /// if the position is invalid.
+    ///   if the position is invalid.
     pub fn get_block_light(&self, x: i32, y: i32, z: i32) -> Option<u8> {
         let idx = check_pos(x, y, z, self.height)?;
         let section = unsafe { self.data.get_unchecked(idx) };
@@ -413,23 +419,26 @@ impl Chunk {
         buffer
             .write_bitset(&empty_block_light_mask.into_inner())
             .await?;
-
         buffer.write_var_int(sky_mask.len() as i32).await?;
         for (index, section) in self.data.iter().enumerate() {
             if sky[index] {
+                let temp = {
+                    let temp = section.sky_light.lock();
+                    temp.to_vec()
+                };
                 buffer.write_var_int(2048).await?;
-                buffer
-                    .write_all(section.sky_light.lock().as_slice())
-                    .await?;
+                buffer.write_all(&temp).await?;
             }
         }
         buffer.write_var_int(block_mask.len() as i32).await?;
         for (index, section) in self.data.iter().enumerate() {
             if block[index] {
+                let temp = {
+                    let temp = section.block_light.lock();
+                    temp.to_vec()
+                };
                 buffer.write_var_int(2048).await?;
-                buffer
-                    .write_all(section.block_light.lock().as_slice())
-                    .await?;
+                buffer.write_all(&temp).await?;
             }
         }
         Ok(())

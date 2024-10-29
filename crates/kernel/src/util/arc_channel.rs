@@ -6,7 +6,7 @@ use std::thread::yield_now;
 use std::time::{Duration, Instant};
 
 pub struct ArcChannel<T> {
-    receivers: Vec<Sender<T>>,
+    receivers: HashMap<usize, Sender<T>>,
 }
 
 struct Sender<T> {
@@ -35,33 +35,47 @@ impl<T> Default for ArcChannel<T> {
 impl<T> ArcChannel<T> {
     pub fn new() -> ArcChannel<T> {
         ArcChannel {
-            receivers: Vec::new(),
+            receivers: HashMap::new(),
         }
     }
     pub fn broadcast(&self, item: T) {
         let arc = Arc::new(item);
         for receiver in self.receivers.iter() {
-            receiver.queue.lock().push_back(arc.clone());
+            receiver.1.queue.lock().push_back(arc.clone());
         }
     }
 
-    pub fn subscribe(&mut self) -> Receiver<T> {
+    pub fn subscribe_with_id(&mut self, id: usize) -> Receiver<T> {
         let queue = Arc::new(Mutex::new(VecDeque::new()));
-        let id = self.receivers.len();
-        let parent = self.receivers.as_ptr() as usize;
+        let parent = &self.receivers as *const _ as usize;
         let sender = Sender {
             parent,
             id,
             queue: queue.clone(),
         };
-        self.receivers.push(sender);
+        self.receivers.insert(id, sender);
+        Receiver { parent, id, queue }
+    }
+    pub fn subscribe(&mut self) -> Receiver<T> {
+        let queue = Arc::new(Mutex::new(VecDeque::new()));
+        let mut id = fastrand::usize(usize::MIN..usize::MAX);
+        while self.receivers.contains_key(&id) {
+            id = fastrand::usize(usize::MIN..usize::MAX);
+        }
+        let parent = &self.receivers as *const _ as usize;
+        let sender = Sender {
+            parent,
+            id,
+            queue: queue.clone(),
+        };
+        self.receivers.insert(id, sender);
         Receiver { parent, id, queue }
     }
     pub fn remove(&mut self, receiver: &Receiver<T>) -> bool {
-        if receiver.parent != self.receivers.as_ptr() as usize {
+        if receiver.parent != &self.receivers as *const _ as usize {
             return false;
         }
-        self.receivers.remove(receiver.id);
+        self.receivers.remove(&receiver.id);
         true
     }
 }
